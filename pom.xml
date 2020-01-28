@@ -249,6 +249,8 @@
   <build>
     <finalName>mmall</finalName>
     <plugins>
+
+      <!-- 配置 mybatis generator 依赖 -->
       <plugin>
         <groupId>org.mybatis.generator</groupId>
         <artifactId>mybatis-generator-maven-plugin</artifactId>
