@@ -36,10 +36,9 @@ public class CategoryManagerController {
             @RequestParam(value = "categoryId", defaultValue = "0", required = false) Integer categoryId,
             HttpSession session) {
         /* 权限鉴定 */
-        User user = (User) session.getAttribute(Const.CURRENT_USER);
-        if (user == null) {
-            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(),
-                    ResponseCode.NEED_LOGIN.getDesc());
+        Boolean isAdmin = iCategoryService.isAdmin(session);
+        if (!isAdmin) {
+            return ServerResponse.createByErrorMessage("需要登录管理员");
         }
         return iCategoryService.getCategoryByParentId(categoryId);
     }
@@ -57,10 +56,9 @@ public class CategoryManagerController {
             @RequestParam(value = "parentId", defaultValue = "0", required = false) Integer parentId,
             String categoryName, HttpSession session) {
         /* 权限鉴定 */
-        User user = (User) session.getAttribute(Const.CURRENT_USER);
-        if (user == null) {
-            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(),
-                    ResponseCode.NEED_LOGIN.getDesc());
+        Boolean isAdmin = iCategoryService.isAdmin(session);
+        if (!isAdmin) {
+            return ServerResponse.createByErrorMessage("需要登录管理员");
         }
 
         if (StringUtils.isBlank(categoryName)) {
@@ -81,10 +79,9 @@ public class CategoryManagerController {
     @ResponseBody
     public ServerResponse<String> setCategoryName(Integer categoryId, String categoryName, HttpSession session) {
         /* 权限鉴定 */
-        User user = (User) session.getAttribute(Const.CURRENT_USER);
-        if (user == null) {
-            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(),
-                    ResponseCode.NEED_LOGIN.getDesc());
+        Boolean isAdmin = iCategoryService.isAdmin(session);
+        if (!isAdmin) {
+            return ServerResponse.createByErrorMessage("需要登录管理员");
         }
 
         if (StringUtils.isBlank(categoryName)) {
@@ -104,10 +101,9 @@ public class CategoryManagerController {
     @ResponseBody
     public ServerResponse getDeepCategory(Integer categoryId, HttpSession session) {
         /* 权限鉴定 */
-        User user = (User) session.getAttribute(Const.CURRENT_USER);
-        if (user == null) {
-            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(),
-                    ResponseCode.NEED_LOGIN.getDesc());
+        Boolean isAdmin = iCategoryService.isAdmin(session);
+        if (!isAdmin) {
+            return ServerResponse.createByErrorMessage("需要登录管理员");
         }
 
         return iCategoryService.getDeepCategory(categoryId);

@@ -1,13 +1,17 @@
 package com.mmall.service.impl;
 
+import com.mmall.common.Const;
+import com.mmall.common.ResponseCode;
 import com.mmall.common.ServerResponse;
 import com.mmall.dao.CategoryMapper;
 import com.mmall.pojo.Category;
+import com.mmall.pojo.User;
 import com.mmall.service.ICategoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import sun.security.util.Length;
 
+import javax.servlet.http.HttpSession;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -78,6 +82,23 @@ public class CategoryServiceImpl implements ICategoryService {
         return ServerResponse.createBySuccess("成功", deepIds);
     }
 
+    /**
+     * 判断是否是管理员
+     * @param session
+     * @return
+     */
+    @Override
+    public Boolean isAdmin(HttpSession session) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if (user == null) {
+            return false;
+        }
+        /* 判断权限 */
+        if(user.getRole() == Const.Role.ROLE_ADMIN) {
+            return true;
+        }
+        return false;
+    }
 
     public List<Integer> getChildCategory(Integer categoryId) {
         return categoryMapper.selectIdsByParentId(categoryId);
