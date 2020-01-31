@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
@@ -48,7 +49,14 @@ public class OrderController {
         return iOrderService.pay(orderNo, user.getId(), path);
     }
 
+    /**
+     * 查询订单状态接口 (前端调用)
+     * @param session
+     * @param orderNo
+     * @return
+     */
     @RequestMapping(value = "query_order_pay_status.do", method = RequestMethod.GET)
+    @ResponseBody
     public ServerResponse<Boolean> queryOrderPayStatus(HttpSession session, Long orderNo) {
         User user = (User) session.getAttribute(Const.CURRENT_USER);
         if (user == null) {
@@ -107,5 +115,92 @@ public class OrderController {
             return Const.AlipayCallback.RESPONSE_SUCCESS;
         }
         return Const.AlipayCallback.RESPONSE_FAILED;
+    }
+
+    /**
+     * 创建订单接口
+     * @param session
+     * @param shippingId
+     * @return
+     */
+    @RequestMapping(value = "create.do", method = RequestMethod.POST)
+    @ResponseBody
+    public ServerResponse create(HttpSession session, Integer shippingId) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if (user == null) {
+            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(), ResponseCode.NEED_LOGIN.getDesc());
+        }
+
+        return iOrderService.createOrder(user.getId(), shippingId);
+    }
+
+    /**
+     * 取消订单接口
+     * @param session
+     * @param orderNo
+     * @return
+     */
+    @RequestMapping(value = "cancel.do", method = RequestMethod.POST)
+    @ResponseBody
+    public ServerResponse cancel(HttpSession session, Long orderNo) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if (user == null) {
+            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(), ResponseCode.NEED_LOGIN.getDesc());
+        }
+
+        return iOrderService.cancel(user.getId(), orderNo);
+    }
+
+    /**
+     * 获取已经选中的购物车商品
+     * @param session
+     * @return
+     */
+    @RequestMapping(value = "get_order_cart_product.do", method = RequestMethod.GET)
+    @ResponseBody
+    public ServerResponse getOrderCartProduct(HttpSession session) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if (user == null) {
+            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(), ResponseCode.NEED_LOGIN.getDesc());
+        }
+
+        return iOrderService.getOrderCartProduct(user.getId());
+    }
+
+    /**
+     * 获取订单详情
+     * @param session
+     * @param orderNo
+     * @return
+     */
+    @RequestMapping(value = "detail.do", method = RequestMethod.GET)
+    @ResponseBody
+    public ServerResponse detail(HttpSession session, Long orderNo) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if (user == null) {
+            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(), ResponseCode.NEED_LOGIN.getDesc());
+        }
+
+        return iOrderService.getOrderDetail(user.getId(), orderNo);
+    }
+
+    /**
+     * 获取订单列表
+     * @param session
+     * @param pageNum
+     * @param pageSize
+     * @return
+     */
+    @RequestMapping(value = "list.do", method = RequestMethod.GET)
+    @ResponseBody
+    public ServerResponse list(HttpSession session,
+                               @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
+                               @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {
+        User user = (User) session.getAttribute(Const.CURRENT_USER);
+        if (user == null) {
+            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(), ResponseCode.NEED_LOGIN.getDesc());
+        }
+
+        return iOrderService.getOrderList(user.getId(), pageNum, pageSize);
     }
 }
