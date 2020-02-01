@@ -4,12 +4,8 @@ package com.mmall.common;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.mysql.jdbc.StringUtils;
-import com.mysql.jdbc.TimeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 

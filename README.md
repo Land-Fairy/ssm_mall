@@ -1,3 +1,4 @@
+# JAVA 从零到企业级电商（服务端)
 ## 1. 架构
 
 ### 1. 淘宝项目架构
@@ -70,14 +71,20 @@
 
   Docker 方式进行安装
 
+  注意: 使用 /Users/ios/15_nginx 目录，如果用户为 file, 则 图片保存路径为 
+  
+   /Users/ios/15_nginx/file/xxx.jpg
+  
+  ==》只要 nginx 中 静态文件夹也使用 /Users/ios/15_nginx/file/ 就可以实现  ftp上传，拼接 url后，使用 nginx 进行显示
+  
   ```
   docker pull fauria/vsftpd
   
   docker run -d 
-  -v /Users/ios/14_ftpfile:/home/vsftpd 
+  -v /Users/ios/15_nginx:/home/vsftpd 
   -p 20:20 -p 21:21 
   -p  21100-21110:21100-21110 
-  -e FTP_USER=test 
+  -e FTP_USER=file 
   -e FTP_PASS=test 
   -e PASV_ADDRESS=127.0.0.1 
   -e PASV_MIN_PORT=21100 
@@ -729,7 +736,207 @@ db.minEvictableIdleTimeMillis = 3600000
 
 ## 6. POJO BO VO
 
+1. POJO 用来与数据库做交互
+2. 请求数据，响应数据 用 VO做封装 （要什么，返回什么)
+3. 如果 业务麻烦，可以在 service 层 新增一个 BO对象，对 POJO 做进一层的封装；如果简单，Service 层与 Controller 都使用 VO 即可
+
 ![image-20200130164210776](doc/image-20200130164210776.png)
+
+## 7. 开发技巧
+
+### 1. 统一返回对象
+
+​	由于返回一般为 msg, code, data 其中 msg 和 code是通用的
+
+因此:
+
+	1. data 使用 泛型，可以保持任意需要返回的对象
+ 	2. 使用 static 方法，提供便捷方式（不提供 构造方法)
+
+```java
+package com.mmall.common;
+
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+
+import java.io.Serializable;
+
+/**
+ * 通用响应对象
+ * @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL) 用来忽略值为 null的字段 （json序列化后不返回)
+ * @param <T>
+ */
+@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+public class ServerResponse<T> implements Serializable {
+    private int status;
+    private String msg;
+    private T data;
+
+    /* 将构造方法都设置为 private，提供 static 方法供使用 */
+    private ServerResponse(int status) {
+        this.status = status;
+    }
+
+    /* 注意 这个和下面一个方法 的区别
+    *
+    * ServerResponse(1, new Object()) 会调用该方法
+    * ServerResponse(1, "aa") 会调用下面的重载 (精确优先)
+    * ==> 如果 data 为 string 类型，则会造成歧义(本来赋值给 data， 结果赋值给了 msg)
+    *
+    * */
+    private ServerResponse(int status, T data) {
+        this.status = status;
+        this.data = data;
+    }
+
+    private ServerResponse(int status, String msg) {
+        this.status = status;
+        this.msg = msg;
+    }
+
+    private ServerResponse(int status, String msg, T data) {
+        this.status = status;
+        this.msg = msg;
+        this.data = data;
+    }
+
+    /**
+     * 使用 @JsonIgnore, 不序列化 isSuccess 字段
+     * @return
+     */
+    @JsonIgnore
+    public boolean isSuccess() {
+        return this.status == ResponseCode.SUCCESS.getCode();
+    }
+
+    public static <T> ServerResponse<T> createBySuccess() {
+        return new ServerResponse<T>(ResponseCode.SUCCESS.getCode());
+    }
+
+    public static <T> ServerResponse<T> createBySuccessMessage(String msg) {
+        return new ServerResponse<T>(ResponseCode.SUCCESS.getCode(), msg);
+    }
+
+    public static <T> ServerResponse<T> createBySuccess(T data) {
+        return new ServerResponse<T>(ResponseCode.SUCCESS.getCode(), data);
+    }
+
+    public static <T> ServerResponse<T> createBySuccess(String msg, T data) {
+        return new ServerResponse<T>(ResponseCode.SUCCESS.getCode(), msg, data);
+    }
+
+    public static <T> ServerResponse<T> createByError() {
+        return new ServerResponse<T>(ResponseCode.ERROR.getCode(),
+                ResponseCode.ERROR.getDesc());
+    }
+
+    public static <T> ServerResponse<T> createByErrorMessage(String msg) {
+        return new ServerResponse<T>(ResponseCode.ERROR.getCode(),
+                msg);
+    }
+
+    public static <T> ServerResponse<T> createByErrorCodeMessage(int code, String msg) {
+        return new ServerResponse<T>(code, msg);
+    }
+
+
+    public int getStatus() {
+        return status;
+    }
+
+    public String getMsg() {
+        return msg;
+    }
+
+    public T getData() {
+        return data;
+    }
+}
+
+```
+
+### 2. 接口做枚举
+
+接口类型 用来定义枚举，相对于使用枚举类型，更加的轻量
+
+```java
+public class Const {
+    /* 使用 内部接口方式，比枚举更加轻量 */
+    public interface Role {
+        int ROLE_CUSTOMER = 0; /* 用户 */
+        int ROLE_ADMIN = 1; /* 管理员 */
+    }
+}
+```
+
+### 3. StringUtils 工具
+
+用来做 字符串是否为空的判断
+
+```
+org.apache.commons.lang3.StringUtils的isBlank isNotBlank
+```
+
+### 4. TokenCache
+
+使用 ```com.google.common.cache.LoadingCache``` 来做简单的 token 保存
+
+### 5. MyBatis 分页
+
+1. PageHelper.startPage
+2. 创建 PageInfo 对象
+
+```java
+@Override
+    public ServerResponse<PageInfo> list(Integer userId, int pageNum, int pageSize) {
+        PageHelper.startPage(pageNum,pageSize);
+        List<Shipping> shippingList = shippingMapper.selectByUserId(userId);
+        PageInfo pageInfo = new PageInfo(shippingList);
+        return ServerResponse.createBySuccess(pageInfo);
+    }
+```
+
+### 6. 图片上传 & FTP
+
+### 7. 无限分类 & 查找所有分类
+
+### 8. Mybatis foreach
+
+- 方法
+
+  ```
+      int deleteByUserIdProductIds(@Param("userId") Integer userId,@Param("productIdList")List<String> productIdList);
+  
+  ```
+
+- 查询语句
+
+```
+<delete id="deleteByUserIdProductIds" parameterType="map">
+    delete from mmall_cart
+    where user_id = #{userId}
+    <if test="productIdList != null">
+      and product_id in
+      <foreach collection="productIdList" item="item" index="index" open="(" separator="," close=")">
+        #{item}
+      </foreach>
+    </if>
+  </delete>
+```
+
+### 9. BigDecimal 做价格计算
+
+BigDecimal 在做价格计算的时候，只有将 Double 转为 String，才能准确
+
+因此，可以提供一个 Utils 类，方便使用
+
+```
+public static BigDecimal add(double v1,double v2){
+        BigDecimal b1 = new BigDecimal(Double.toString(v1));
+        BigDecimal b2 = new BigDecimal(Double.toString(v2));
+        return b1.add(b2);
+    }
+```
 
 
 
