@@ -1,4 +1,4 @@
-# JAVA 从零到企业级电商（服务端)
+# JAVA 从零到企业级电商（服务端)_v1.0
 ## 1. 架构
 
 ### 1. 淘宝项目架构
@@ -976,5 +976,54 @@ chmod +x natapp
 
 ### 12. 云服务器部署
 
+# V2.0
 
+## 1. lombok
 
+通过简单地注解，来消除冗长的代码
+
+1. 可以避免 更改字段名之后，忘记修改 getter setter 方法
+2. 支持 @slfj 或 @Log4j方便 logger 使用
+
+### 原理:
+
+Javac 从 Java6开始，就支持了 JSR 269 API 规范
+
+​	==> 只要实现了该 API，就可以在 javac 运行期间得到调用
+
+总结:
+
+​	Lombok 实现了 该API，因此，在 javac 编译源码时，根据使用的注解，自动生成 setter 和 getter 方法
+
+javac 编译流程
+
+![image-20200202115034446](../笔记/image-20200202115034446.png)
+
+### 使用
+
+- maven 引入依赖
+
+```xml
+<dependency>
+    <groupId>org.projectlombok</groupId>
+    <artifactId>lombok</artifactId>
+    <version>1.18.10</version>
+    <scope>provided</scope>
+</dependency>
+```
+
+- IDEA 安装 lombok 插件
+
+### 注意点:
+
+​	@Data 注解 包含了
+
+```
+ Getter 
+ Setter
+ RequiredArgsConstructor
+ ToString
+ EqualsAndHashCode
+```
+
+等注解，因此，通常使用 @Getter @Setter 即可
