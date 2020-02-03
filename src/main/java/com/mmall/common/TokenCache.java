@@ -8,7 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.concurrent.TimeUnit;
 
-
+/**
+ * GuavaCache
+ * 本来是用来单机保存 token的，但是在使用了 多 tomcat 架构之后
+ * 使用 Redis 进行了替代
+ */
 public class TokenCache {
     private static Logger logger = LoggerFactory.getLogger(TokenCache.class);
 

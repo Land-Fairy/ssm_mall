@@ -8,6 +8,8 @@ public class Const {
     public static final String EMAIL = "email";
     public static final String USERNAME = "username";
 
+    public static final String TOKEN_PREFIX = "token_";
+
     /* Redis 过期时间 */
     public interface RedisCacheExtime{
         /* SESSION 过期时间 30 分钟 */
