@@ -8,6 +8,12 @@ public class Const {
     public static final String EMAIL = "email";
     public static final String USERNAME = "username";
 
+    /* Redis 过期时间 */
+    public interface RedisCacheExtime{
+        /* SESSION 过期时间 30 分钟 */
+        int REDIS_SESSION_EXTIME = 60 * 30;
+    }
+
     /* 使用 内部接口方式，比枚举更加轻量 */
     public interface Role {
         int ROLE_CUSTOMER = 0; /* 用户 */
