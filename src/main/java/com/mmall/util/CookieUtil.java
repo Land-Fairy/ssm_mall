@@ -1,5 +1,7 @@
 package com.mmall.util;
 
+import com.mmall.common.ServerResponse;
+import com.mmall.pojo.User;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.servlet.http.Cookie;
