@@ -1027,3 +1027,340 @@ javac 编译流程
 ```
 
 等注解，因此，通常使用 @Getter @Setter 即可
+
+## 2. Maven
+
+### 1. 实际的开发环境
+
+- 本地开发环境 Local
+- 开发环境 Dev
+- 测试环境 Beta
+- 线上环境 Prod
+
+### 2. Maven 环境隔离配置及原理
+
+- pom.xml 中 build 节点增加 resources子节点
+
+```xml
+		<resources>
+      <!-- 每个环境特有的，放在这里 -->
+      <resource>
+        <directory>src/main/resources.${deploy.type}</directory>
+        <!-- 排除掉 jsp 文件 -->
+        <excludes>
+          <exclude>*.jsp</exclude>
+        </excludes>
+      </resource>
+      <!-- 公共部分放在这里 -->
+      <resource>
+        <directory>src/main/resources</directory>
+      </resource>
+    </resources>
+```
+
+- pom.xml 中增加 profiles 节点(与 build 节点同级)
+
+```xml
+ <profiles>
+    <profile>
+      <id>dev</id>
+      <!-- 设置默认 -->
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <deploy.type>dev</deploy.type>
+      </properties>
+    </profile>
+    <profile>
+      <id>beta</id>
+      <properties>
+        <deploy.type>beta</deploy.type>
+      </properties>
+    </profile>
+    <profile>
+      <id>prod</id>
+      <properties>
+        <deploy.type>prod</deploy.type>
+      </properties>
+    </profile>
+  </profiles>
+```
+
+测试，点击 Maven， 刷新，将会看到如下结果
+
+![image-20200202152102362](../笔记/image-20200202152102362.png)
+
+- 将需要隔离的文件分开
+
+  由于resources节点中，设置了不同的文件放置目录 src/main/resources.${deploy.type}
+
+  ==> 创建 不同环境对应的文件夹，并且将需要隔离的文件放在这个文件夹下
+
+  ![image-20200202152336002](../笔记/image-20200202152336002.png)
+
+- IDEA 中 设置默认环境
+
+  此处设置的默认环境，指的是 使用 IDEA进行 运行的时候，使用的环境
+
+  ![image-20200202145903136](../笔记/image-20200202145903136.png)
+
+- Maven 环境隔离时，打包命令
+
+```
+/*
+ 参数 -P环境
+ -Dmaven.test.skip=true   跳过测试
+ */
+mvn clean package -Dmaven.test.skip=true -Pdev
+```
+
+## 3. Tomcat 集群
+
+### 1. Tomcat 集群能带来什么?
+
+- 提高服务的性能，并发能力，高可用性
+- 提供项目架构的横向扩展能力
+
+### 2. Tomcat 集群实现原理
+
+- 通过Nginx 负载均衡进行 转发
+
+![image-20200202155953303](../笔记/image-20200202155953303.png)
+
+### 3. Tomcat 集群带来了什么问题
+
+- session 登录信息存储及读取的问题
+
+  - 解决1
+
+  使用 nginx ip hash policy (上次请求使用哪个，下次还用哪个)
+
+  优点:
+
+  ​	不改变 现有的架构，直接实现横向扩展
+
+  缺点:
+
+  ​	服务器 请求负载 不平均(完全依赖 ip hash的结果)
+
+  ​	在IP变化的环境下无法使用
+
+![image-20200202160306373](../笔记/image-20200202160306373.png)
+
+- 服务器定时任务并发的问题?
+
+### 4. Tomcat 单机部署多应用 
+
+#### 1. 解决Tomcat 乱码的问题
+
+```
+修改 conf/sever.xml 文件
+添加如下内容
+```
+
+![image-20200202210535981](../笔记/image-20200202210535981.png)
+
+#### 2. 确保一个Tomcat 可以正常执行
+
+```
+cd bin
+chmod +x startup.sh
+./startup.sh   
+==> 浏览器访问 http://localhost:8080  确保页面正常
+```
+
+#### 3. 添加 多个 Tomcat 的环境变量
+
+1. 编辑 /etc/profile 文件，添加下面内容
+
+```
+export CATALINA_HOME=/Users/ios/03_software/apache-tomcat-8.5.50
+export TOMCAT_HOME=/Users/ios/03_software/apache-tomcat-8.5.50
+
+export CATALINA_2_BASE=/Users/ios/03_software/apache-tomcat-8.5.50-2
+export CATALINA_2_HOME=/Users/ios/03_software/apache-tomcat-8.5.50-2
+export TOMCAT_2_HOME=/Users/ios/03_software/apache-tomcat-8.5.50-2
+```
+
+2. 使得配置生效
+
+```
+source /etc/profile
+```
+
+#### 4. 修改 第二个 tomcat的配置
+
+- 修改 bin/catalina.sh (mac 下)
+
+  找到 # OS specific support.  $var _must_ be set to  行，添加下面两个内容
+
+  ==> $CATALINA_2_BASE  即环境变量
+
+```
+# OS specific support.  $var _must_ be set to either true or false.
+export CATALINA_BASE=$CATALINA_2_BASE
+export CATALINA_HOME=$CATALINA_2_HOME
+```
+
+- 修改 conf/server.xml (该端口)
+
+  共需要修改 3 处端口
+
+  8005 -> 9005
+
+```
+><Server port="9005" shutdown="SHUTDOWN">
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+  <!-- Security listener. Documentation at /docs/config/listeners.html
+  <Listener className="org.apache.catalina.security.SecurityListener" />
+```
+
+​		8080 -> 9080
+
+```
+<Connector port="9080" protocol="HTTP/1.1"
+               connectionTimeout="20000"
+               redirectPort="8443" URIEncoding="UTF-8" />
+```
+
+​		8009 -> 9009
+
+```
+<!-- Define an AJP 1.3 Connector on port 8009 -->
+    <Connector port="9009" protocol="AJP/1.3" redirectPort="8443" />
+```
+
+#### 5. 修改第二个tomcat 的图标(可选)
+
+为了明显区分两个tomcat，可以修改第二个tomcat的logo
+
+```
+替换 webapps/ROOT/tomcat.png 为 其他图片即可
+```
+
+#### 6. 分别启动两个tomcat 即可
+
+发现第二个tomcat启动的时候，使用的路径正确，并且logo为我们替换的logo
+
+```
+Using CATALINA_BASE:   /Users/ios/03_software/apache-tomcat-8.5.50-2
+Using CATALINA_HOME:   /Users/ios/03_software/apache-tomcat-8.5.50-2
+Using CATALINA_TMPDIR: /Users/ios/03_software/apache-tomcat-8.5.50-2/temp
+```
+
+### 5. Nginx 负载均衡配置
+
+#### 1. 轮询(默认)
+
+- 优点
+
+  实现比较简单
+
+- 缺点
+
+  没有考虑每台服务器的处理能力
+
+  - 配置
+
+    www.happymmall.com => 需要进行负载均衡的 域名
+
+    www.happymmall.com:8080 9090  => 将请求转到哪里
+
+  ![image-20200202170433032](../笔记/image-20200202170433032.png)
+
+#### 2. 权重
+
+- 优点
+
+  考虑了每台服务器处理能力的不同配置
+
+- 配置
+
+  ![image-20200202170722431](../笔记/image-20200202170722431.png)
+
+  其中 8080 权重为15， 9090 权重为10
+
+  ​	==> 8080 被访问到的概率是 9090 的 15/10 倍
+
+#### 3. ip hash
+
+- 优点
+
+  可以实现一个用户访问同一个服务器
+
+- 缺点
+
+  ip hash 不一定均衡
+
+- 配置
+
+![image-20200202171127495](../笔记/image-20200202171127495.png)
+
+#### 4. url hash(第三方)
+
+- 优点
+
+  实现统一服务访问同一个服务器 （根据url区分)
+
+- 缺点
+
+  请求分配会不平均，可能请求频繁的url落到同一个服务器上
+
+#### 5. fair(第三方)
+
+- 特点
+
+  安装后端服务器的响应时间来分配请求，响应时间短的优先进行分配
+
+  ![image-20200202171420549](../笔记/image-20200202171420549.png)
+
+### 6. 搭建集群
+
+- 效果
+
+  浏览器访问 www.day.com, 负载均衡到 www.day.com:8080 www.day.com:9080
+
+#### 1. 启动两个 Tomcat
+
+#### 2. 创建域名
+
+修改 /etc/hosts 文件， 添加如下内容
+
+```
+127.0.0.1 www.day.com
+```
+
+#### 3. 修改 Nginx 配置
+
+- docker 方式启动Nginx， 并浏览器浏览，确保Nginx 正常
+  1. www.day.com 80 的请求，转到 http://www.day.com
+  2. 对 www.day.com 做负载均衡，将请求转发到 www.day.com:8080 和 9080上
+
+```
+upstream www.day.com
+{
+    server 本机IP:8080;
+    server 本机IP:9080;
+}
+server {
+    listen       80;
+    server_name  www.day.com;
+    location / {
+        proxy_pass http://www.day.com;
+    }
+}
+```
+
+注意：
+
+​	在使用  nginx 的 docker 时，需要将 upstream 中  server 地址使用 本机ip （
+
+由于 www.day.com 是 本机修改 Hosts文件的，在docker内部访问不到这个???)
+
+#### 4. 在浏览器测试即可
+
+
+
+## 6. Redis 单点登录
+
