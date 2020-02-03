@@ -23,6 +23,15 @@
         <filter-name>characterEncodingFilter</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
+    
+    <filter>
+        <filter-name>sessionExpireFilter</filter-name>
+        <filter-class>com.mmall.controller.common.SessionExpireFilter</filter-class>
+    </filter>
+    <filter-mapping>
+        <filter-name>sessionExpireFilter</filter-name>
+        <url-pattern>*.do</url-pattern>
+    </filter-mapping>
 
 
     <!-- 发现继承于 EventListener ==》 Web 容器启动，关闭的监听器  -->
