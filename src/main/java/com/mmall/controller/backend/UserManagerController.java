@@ -7,6 +7,7 @@ import com.mmall.service.IUserService;
 import com.mmall.util.CookieUtil;
 import com.mmall.util.JsonUtil;
 import com.mmall.util.RedisPoolUtil;
+import com.mmall.util.RedisSharedPoolUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -35,7 +36,7 @@ public class UserManagerController {
                 /* cookie 中写入 token */
                 CookieUtil.writeLoginToken(rsp, session.getId());
                 /* 保存到 Redis 中 */
-                RedisPoolUtil.setEx(
+                RedisSharedPoolUtil.setEx(
                         session.getId(),
                         JsonUtil.obj2String(response.getData()),
                         Const.RedisCacheExtime.REDIS_SESSION_EXTIME);

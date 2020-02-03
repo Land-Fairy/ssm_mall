@@ -1364,3 +1364,523 @@ server {
 
 ## 6. Redis 单点登录
 
+### 1. 单 tomcat 时
+
+```
+1. 使用 HttpSession 存储 user 信息
+```
+
+问题：
+
+在迁移到 多 tomcat 时，用户在 tomcat1上登录信息 无法同步到 tomcat2上
+
+==> 将 user 信息 存储到 redis ，多个tomcat 都可以连接 Redis 进行获取
+
+### 2. 构建 Redis 连接池
+
+#### 1. Jedis 依赖
+
+```xml
+<!-- 与课程使用同样的版本 -->
+    <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>2.6.0</version>
+    </dependency>
+```
+
+#### 2. 构件连接池
+
+配置 连接信息, 提供 获取连接，归还连接方法
+
+```java
+package com.mmall.common;
+
+import com.mmall.util.PropertiesUtil;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
+import sun.jvm.hotspot.debugger.win32.coff.COFFFile;
+
+public class RedisPool {
+    /* jedis 连接池 */
+    private static JedisPool pool;
+
+    /* 最大连接数 */
+    private static Integer maxTotal = Integer.parseInt(PropertiesUtil.getProperty("redis.max.total", "20"));
+
+    /* 做多空闲 jedis 实例个数 */
+    private static Integer maxIdle = Integer.parseInt(PropertiesUtil.getProperty("redis.max.idle", "10"));
+
+    /* 最小的空闲 jedis 实例个数 */
+    private static Integer minIdle = Integer.parseInt(PropertiesUtil.getProperty("redis.min.idle", "2"));
+
+    /**
+     * 在 borrow 一个 jedis实例时候，
+     * 是否要进行验证操作(true 表示 每次取出来的肯定是可用实例)
+     */
+    private static Boolean testOnBorrow = Boolean.parseBoolean(PropertiesUtil.getProperty("redis.test.borrow", "true"));
+
+    /**
+     * 在 return 一个实例的时候，进行验证
+     * 如果为 true，表示 放入的一个实例肯定是可用的
+     */
+    private static Boolean testOnReturn = Boolean.parseBoolean(PropertiesUtil.getProperty("redis.test.return", "true"));
+
+    private static String redisIp = PropertiesUtil.getProperty("redis.ip");
+    private static Integer redisPort = Integer.parseInt(PropertiesUtil.getProperty("redis.port"));
+
+
+    private static void initPool() {
+        JedisPoolConfig config = new JedisPoolConfig();
+        config.setMaxTotal(maxTotal);
+        config.setMaxIdle(maxIdle);
+        config.setMinIdle(minIdle);
+        config.setTestOnBorrow(testOnBorrow);
+        config.setTestOnReturn(testOnReturn);
+        /**
+         * 连接耗尽的时候，有新的连接来临
+         *  true: 阻塞 直到超时 或者可用
+         *  fale：抛出异常
+         */
+        config.setBlockWhenExhausted(true);
+
+        pool = new JedisPool(config, redisIp, redisPort, 1000 * 2);
+    }
+
+    static {
+        initPool();
+    }
+
+    /**
+     * 获取一个 Jedis 连接
+     * @return
+     */
+    public static Jedis getJedis() {
+        return pool.getResource();
+    }
+
+    public static void returnResource(Jedis jedis) {
+        pool.returnResource(jedis);
+    }
+
+    public static void returnBrokenResource(Jedis jedis) {
+        pool.returnBrokenResource(jedis);
+    }
+
+    public static void main(String[] args) {
+        Jedis jedis = RedisPool.getJedis();
+        jedis.set("sssss", "aaaa");
+        RedisPool.returnResource(jedis);
+    }
+}
+
+```
+
+#### 3. Redis工具类
+
+包含操作 Redis 常用的一些方法
+
+- set
+- get
+- setEx
+- expire
+- del
+
+```java
+package com.mmall.util;
+
+import com.mmall.common.RedisPool;
+import lombok.extern.slf4j.Slf4j;
+import org.slf4j.LoggerFactory;
+import redis.clients.jedis.Jedis;
+
+@Slf4j
+public class RedisPoolUtil {
+
+    /**
+     * 设置 key 的超时时间
+     * @param key
+     * @param exTime 单位 秒
+     * @return 1 -> 成功
+     */
+    public static Long expire(String key, int exTime) {
+        Jedis jedis = null;
+        Long result = null;
+
+        try {
+            jedis = RedisPool.getJedis();
+            result = jedis.expire(key, exTime);
+        } catch (Exception e) {
+            log.error("expire key: {}  error", key, e);
+            RedisPool.returnBrokenResource(jedis);
+            return result;
+        }
+        RedisPool.returnResource(jedis);
+        return result;
+    }
+
+    /**
+     * 设置 带有 超时时间的 key
+     * @param key
+     * @param value
+     * @param exTime
+     * @return
+     */
+    public static String setEx(String key, String value, int exTime) {
+        Jedis jedis = null;
+        String result = null;
+
+        try {
+            jedis = RedisPool.getJedis();
+            result = jedis.setex(key, exTime, value);
+        } catch (Exception e) {
+            log.error("setex key: {} value: {} error", key, value, e);
+            RedisPool.returnBrokenResource(jedis);
+            return result;
+        }
+        RedisPool.returnResource(jedis);
+        return result;
+    }
+
+    /**
+     * 设置 Key value
+     * @param key
+     * @param value
+     * @return
+     */
+    public static String set(String key, String value) {
+        Jedis jedis = null;
+        String result = null;
+
+        try {
+            jedis = RedisPool.getJedis();
+            result = jedis.set(key,value);
+        } catch (Exception e) {
+            log.error("set key: {} value: {} error", key, value, e);
+            RedisPool.returnBrokenResource(jedis);
+            return result;
+        }
+        RedisPool.returnResource(jedis);
+        return result;
+    }
+
+    /**
+     * 获取key的值
+     * @param key
+     * @return
+     */
+    public static String get(String key) {
+        Jedis jedis = null;
+        String result = null;
+
+        try {
+            jedis = RedisPool.getJedis();
+            result = jedis.get(key);
+        } catch (Exception e) {
+            log.error("get key: {} error", key, e);
+            RedisPool.returnBrokenResource(jedis);
+            return result;
+        }
+        RedisPool.returnResource(jedis);
+        return result;
+    }
+
+    /**
+     * 删除 key
+     * @param key
+     * @return
+     */
+    public static Long del(String key) {
+        Jedis jedis = null;
+        Long result = null;
+
+        try {
+            jedis = RedisPool.getJedis();
+            result = jedis.del(key);
+        } catch (Exception e) {
+            log.error("del key: {} error", key, e);
+            RedisPool.returnBrokenResource(jedis);
+            return result;
+        }
+        RedisPool.returnResource(jedis);
+        return result;
+    }
+
+
+    public static void main(String[] args) {
+        RedisPoolUtil.set("k1", "v1");
+        String k1 = RedisSharedPoolUtil.get("k1");
+        RedisSharedPoolUtil.setEx("k2", "v2", 100);
+        RedisSharedPoolUtil.expire("k2", 2000);
+        RedisSharedPoolUtil.del("k1");
+    }
+}
+
+
+```
+
+
+
+#### 4. Json序列化工具
+
+由于 在 Redis 中 进行操作的时候，使用的都是 String。而 需要保存到 Redis 的是对象
+
+因此，在 set 的时候，需要将对象进行序列化， 在 取出的时候，需要进行 反序列化
+
+注意：
+
+> 在 string 转 obj 的时候
+>
+> ​	string2Obj(String str, Class<T> clazz) 对于 普通类型是正常的，但是对于 List<User> 这种复合类型，则会出错	
+
+```java
+package com.mmall.util;
+
+import com.mmall.pojo.User;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.codehaus.jackson.JsonParseException;
+import org.codehaus.jackson.map.DeserializationConfig;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
+import org.codehaus.jackson.map.annotate.JsonSerialize;
+import org.codehaus.jackson.type.JavaType;
+import org.codehaus.jackson.type.TypeReference;
+
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Arrays;
+import java.util.List;
+
+/**
+ * 由于存储到 Redis时，使用的是 String
+ * 因此，就需要 JsonUtil 来做 obj => string 或者 string => obj
+ */
+@Slf4j
+public class JsonUtil {
+
+    private static ObjectMapper objectMapper = new ObjectMapper();
+
+    static {
+        /* 序列化时，所有的字段全部列入 */
+        objectMapper.setSerializationInclusion(JsonSerialize.Inclusion.ALWAYS);
+        /* 取消 时间 默认转换 timestamp 形式 */
+        objectMapper.configure(SerializationConfig.Feature.WRITE_DATES_AS_TIMESTAMPS, false);
+        /* 忽略 空 bean 转 json 错误 */
+        objectMapper.configure(SerializationConfig.Feature.FAIL_ON_EMPTY_BEANS, false);
+        /* 所有的时间格式都统一下面的形式 */
+        objectMapper.setDateFormat(new SimpleDateFormat(DateTimeUtil.STANDARD_FORMAT));
+
+        /* 忽略 在 json字符串中存在，但是 java对象中不存在对应属性的情况，防止错误 */
+        objectMapper.configure(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+
+    }
+
+    public static <T> String obj2String(T obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        try {
+            return obj instanceof String ? (String)obj: objectMapper.writeValueAsString(obj);
+        } catch (Exception e) {
+            log.warn("Parse object to String error", e);
+            return null;
+        }
+    }
+
+    public static <T> String obj2StringPretty(T obj) {
+        if (obj == null) {
+            return null;
+        }
+
+        try {
+            return obj instanceof String ? (String)obj: objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
+        } catch (Exception e) {
+            log.warn("Parse object to String error", e);
+            return null;
+        }
+    }
+
+    /**
+     * 通用的 字符串 转 具体类型
+     * @param str
+     * @param tTypeReference
+     * @param <T>
+     * @return
+     */
+    public static <T> T string2Obj(String str, TypeReference<T> tTypeReference) {
+        if (StringUtils.isEmpty(str) || tTypeReference == null) {
+            return null;
+        }
+
+        try {
+            return (T) (tTypeReference.getType().equals(String.class) ? str : objectMapper.readValue(str, tTypeReference));
+        } catch (IOException e) {
+            log.warn("Parse String to Objet error", e);
+            return null;
+        }
+    }
+
+    public static <T> T string2Obj(String str, Class<T> collectionClass,
+                                   Class<?>... elementCLasses) {
+        JavaType javaType = objectMapper.getTypeFactory().
+                constructParametricType(collectionClass, elementCLasses);
+
+        try {
+            return objectMapper.readValue(str, javaType);
+        } catch (Exception e) {
+            log.warn("Parse String to Object error", e);
+            return null;
+        }
+    }
+
+    /**
+     * 有问题的反序列化方法 如果 类型是 List<<User>> 则序列化错误
+     * @param str
+     * @param clazz
+     * @param <T>
+     * @return
+     */
+    public static <T> T string2Obj(String str, Class<T> clazz) {
+        if (StringUtils.isEmpty(str) || clazz == null) {
+            return null;
+        }
+
+        try {
+            return clazz.equals(String.class) ? (T)str : objectMapper.readValue(str, clazz);
+        } catch (IOException e) {
+            log.warn("Parse String to Objet error", e);
+            return null;
+        }
+    }
+
+    public static void main(String[] args) {
+        User u1 = new User();
+        u1.setId(1);
+        u1.setUsername("aaa");
+
+        User u2 = new User();
+        u2.setId(2);
+        u2.setEmail("111.com");
+
+        String s = JsonUtil.obj2String(u1);
+        String s1 = JsonUtil.obj2StringPretty(u1);
+
+        User user = JsonUtil.string2Obj(s, User.class);
+
+        System.out.println(user);
+
+        List<User> users = Arrays.asList(u1, u2);
+
+        String s2 = JsonUtil.obj2String(users);
+
+        List<User> users1 = JsonUtil.string2Obj(s2, new TypeReference<List<User>>() {
+        });
+        System.out.println(users1);
+
+        List list = JsonUtil.string2Obj(s2, List.class, User.class);
+
+    }
+}
+
+```
+
+#### 5. 登录，验证的时候，从cookie中取出 token，根据token从Redis中取出具体对象
+
+为什么要使用 cookie, 而不使用 HttpSession 的 id
+
+```
+由于 HttpSession 是 tomcat 相关的。
+1. 第一次浏览器请求是，没有任何信息，则服务端会生成一个 名为 JSESESSIONID 的 Cookie，
+2. 请求第二次到达的时候，服务端 根据 JSESESSIONID 的 cookie 查找 对应的 Session， 如果找不到，重新创建
+==> 请求在第一个 tomcat 上 登录，返回了一个 JSESESSIONID，但是在第二个 tomcat 请求是，找不到 对应session，就会重新创建一个。导致 两个 tomcat 上信息不能同步
+```
+
+#### 6. 忘记密码等 token 存储在 GuavaCache 迁移到 Redis
+
+### 7. Redis分布式算法
+
+在使用 Redis 分布式的时候，应该按照什么策略 存储 + 读取 数据呢?
+
+#### 传统的算法
+
+```
+假定有 4个 Redis 节点，现在有 20个 图片需要处理
+1. hash(图片1) % 4 = 存储的 Redis 节点id
+```
+
+![image-20200203221551126](../笔记/image-20200203221551126.png)
+
+这种算法有什么问题呢?
+
+```
+如果 增加了一个 Redis 节点。那么原来存储的数据，在读取的时候，hash(图片) % 5 会导致 命中率 特别低。。。
+如下图所示，原来存储的 20个数据，只有 4个数据会命中，其他的都失败.....
+```
+
+![image-20200203221522792](../笔记/image-20200203221522792.png)
+
+那么，有什么算法 可以再 增减Redis 配置的时候，也很合适呢?
+
+#### Consistent hashing 算法
+
+即 一致性 hash 算法
+
+1. 首先，有一个环形 hash 空间，即 hash 的结果是一个环(值得取值范围是 0-2^32-1)
+
+![image-20200203222011076](../笔记/image-20200203222011076.png)
+
+2. 使用一个 hash 算法，将 每个 Redis 的信息，计算出一个 hash 值
+3. 使用同样的hash算法，将 要存储的数据 计算出 hash值
+
+>如图，其中:
+>
+>​	蓝色 3个点 => Redis 节点 hash 结果
+>
+>​	红色点        => 要存储的 数据  hash 结果
+
+![image-20200203222817414](../笔记/image-20200203222817414.png)
+
+存储原则:
+
+	> 顺时针方向，红色点存储在 遇到的第一个 蓝色点上
+
+```
+这样的存储方式，在增加，删除 Redis 节点的时候，数据 影响比较小
+```
+
+=================
+
+这种 算法 有什么 缺点吗 ？
+
+##### Hash 倾斜性问题
+
+嗯嗯~ ，如果 Redis 节点 计算出的 hahs 结果是下面这种情况，那么 有的 Redis 节点 很繁忙，而有的则无事可做
+
+> Hash 倾斜性  A B C 3个 Redis 节点的 hash 结果不均匀。。。导致 A 节点上存储数据较多，BC 节点基本无事可做
+
+![image-20200203222916936](../笔记/image-20200203222916936.png)
+
+==============================
+
+这种问题如何解决呢？
+
+##### 虚拟节点方式
+
+```
+使用 虚拟节点的方式
+  本来只有 ABC 3个真实节点，但是这 3个 节点 hash 不均匀，
+  那么，可以使用算法，对真实节点 虚拟出很多的 虚拟节点，需要存储的数据落在 虚拟节点上 == 存储在真实节点上
+  如果虚拟节点更多，那么 分布就更加均匀
+```
+
+
+
+![image-20200203223204777](../笔记/image-20200203223204777.png)
+
+### 8. Redis 分布式搭建
+
+修改 Redis 配置文件，改为两个端口，然后启动两个Redis 即可

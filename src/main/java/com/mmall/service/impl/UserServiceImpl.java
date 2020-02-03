@@ -128,7 +128,7 @@ public class UserServiceImpl implements IUserService {
         }
         /* 获取token，并将token 存放在 TokenCache 中 */
         String token = UUID.randomUUID().toString();
-        RedisPoolUtil.setEx(Const.TOKEN_PREFIX+username, token, 60 *60 * 12);
+        RedisSharedPoolUtil.setEx(Const.TOKEN_PREFIX+username, token, 60 *60 * 12);
         return ServerResponse.createBySuccess(token);
     }
 
@@ -148,7 +148,7 @@ public class UserServiceImpl implements IUserService {
         }
 
         /* 从缓存中获取key */
-        String cachedToken = RedisPoolUtil.get(Const.TOKEN_PREFIX + username);
+        String cachedToken = RedisSharedPoolUtil.get(Const.TOKEN_PREFIX + username);
         if (StringUtils.isBlank(cachedToken)) {
             return ServerResponse.createByErrorMessage("Token 无效或者已经过期");
         }
