@@ -1,14 +1,18 @@
 package com.mmall.task;
 
 import com.mmall.common.Const;
+import com.mmall.common.RedissonManager;
 import com.mmall.service.IOrderService;
 import com.mmall.util.PropertiesUtil;
 import com.mmall.util.RedisSharedPoolUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.redisson.api.RLock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.TimeUnit;
 
 @Component
 @Slf4j
@@ -16,6 +20,9 @@ public class CloseOrderTask {
 
     @Autowired
     private IOrderService iOrderService;
+
+    @Autowired
+    private RedissonManager redissonManager;
 
 //    /**
 //     * 每 隔 一分钟
@@ -66,7 +73,7 @@ public class CloseOrderTask {
      * 每 隔 一分钟
      * 使用 Redis 分布式锁 版本
      */
-    @Scheduled(cron = "0 */1 * * * ? ")
+//    @Scheduled(cron = "0 */1 * * * ? ")
     public void closeOrderTaskV3() {
         /* 分布式锁 的超时时间 单位: 毫秒 */
         long lockTimeout = Long.parseLong(PropertiesUtil.getProperty("lock.timeout", "5000"));
@@ -107,5 +114,44 @@ public class CloseOrderTask {
             }
         }
         log.info("关闭订单 定时任务结束");
+    }
+
+
+    @Scheduled(cron = "0 */1 * * * ? ")
+    public void closeOrderTaskV4() {
+        RLock lock = redissonManager.getRedisson().getLock(Const.RedisLock.CLOSE_ORDER_LOCK);
+        boolean getLock = false;
+        try {
+            /**TODO
+             * waitTime: 等待获取锁的时间, 一般设置为 0
+             * 原因:
+             *  本来是想要 只有一个人能获取到锁（执行代码), 假定 waitTime=5
+             *  1. 第一个 tomcat 获取到锁，执行代码
+             *  2. 第二个 tomcat 等待 获取锁（等待 waitTime 时间)
+             *  3. 第一个 tomcat 执行完毕，释放锁(不到 waitTime时间)
+             *  4. 第二个 tomcat 也获取到锁，执行代码
+             *  ====> 两个 tomcat 先后都获取到锁了 ！！！！！
+             *  第二个 tomcat 没获取到所，就应该直接失败！！！
+             * leaseTime: 释放锁等待时间
+             */
+            getLock = lock.tryLock(0, 5, TimeUnit.SECONDS);
+            if (getLock) {
+                int hour = Integer.parseInt(PropertiesUtil.getProperty("close.order.task.time.hour", "2"));
+                iOrderService.closeOrder(hour);
+            } else {
+                log.info("么有获取到分布式锁");
+            }
+
+        } catch (InterruptedException e) {
+            log.error("Redisson分布式锁获取异常", e);
+        } finally {
+            /* 如果没有获取到分布式锁，跳过*/
+            if (!getLock) {
+                return;
+            }
+            /* 释放锁 */
+            lock.unlock();
+        }
+
     }
 }

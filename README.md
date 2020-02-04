@@ -1965,3 +1965,16 @@ public class ExceptionResolver implements HandlerExceptionResolver {
 ### 13. Redis 分布式锁
 
 ![image-20200204204338196](../笔记/image-20200204204338196.png) 
+
+### 14. Redisson
+
+
+
+![image-20200204220653631](../笔记/image-20200204220653631.png)![image-20200204220751339](../笔记/image-20200204220751339.png)
+
+github wiki
+
+
+
+
+
