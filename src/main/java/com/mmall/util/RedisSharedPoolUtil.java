@@ -74,6 +74,22 @@ public class RedisSharedPoolUtil {
         return result;
     }
 
+    public static Long setnx(String key, String value) {
+        ShardedJedis jedis = null;
+        Long result = null;
+
+        try {
+            jedis = RedisSharedPool.getJedis();
+            result = jedis.setnx(key,value);
+        } catch (Exception e) {
+            log.error("setnx key: {} value: {} error", key, value, e);
+            RedisSharedPool.returnBrokenResource(jedis);
+            return result;
+        }
+        RedisSharedPool.returnResource(jedis);
+        return result;
+    }
+
     /**
      * 获取key的值
      * @param key

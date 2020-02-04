@@ -148,4 +148,9 @@ public class Const {
 
     }
 
+    /* Redis 分布式锁 */
+    public interface RedisLock {
+        String CLOSE_ORDER_LOCK = "Close_Order_Lock";
+    }
+
 }
