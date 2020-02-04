@@ -1884,3 +1884,32 @@ public class JsonUtil {
 ### 8. Redis 分布式搭建
 
 修改 Redis 配置文件，改为两个端口，然后启动两个Redis 即可
+
+### 9. 代码使用 Redis 分布式
+
+现在有了 多个 Redis 节点，如何在 代码中使用呢
+
+===========
+
+Sharded Jedis API
+
+### 10. Spring Session 简介
+
+> Spring Session 提供了一套 创建 和 管理ServletHttpSession的方案
+
+> 提供了集群Session的功能
+>
+> ​	默认采用了 外置的 Redis 来存储 Session数据，
+>
+> 并以此来解决Session共享的问题
+
+### 11. SpringMVC全局异常
+
+没有SpringMVC异常的时候，流程是什么样子的呢?
+
+![image-20200204100710449](../笔记/image-20200204100710449.png)
+
+那么，加入了SpringMVC 全局异常之后呢?
+
+![image-20200204100803377](../笔记/image-20200204100803377.png)
+
