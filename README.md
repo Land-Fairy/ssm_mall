@@ -1955,3 +1955,9 @@ public class ExceptionResolver implements HandlerExceptionResolver {
 效果: 
 
 ![image-20200204102820902](../笔记/image-20200204102820902.png)
+
+### 12 SpringMVC 拦截器
+
+流程图
+
+![image-20200204112258826](../笔记/image-20200204112258826.png)

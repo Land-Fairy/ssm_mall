@@ -43,4 +43,13 @@
     </bean>
 
 
+    <mvc:interceptors>
+        <mvc:interceptor>
+            <!-- /manage/a.do  => /manage/*-->
+            <!-- /manage/product/a.do => /manage/** -->
+            <mvc:mapping path="/manage/**"/>
+            <bean class="com.mmall.controller.common.interceptor.AuthorityInterceptor"></bean>
+        </mvc:interceptor>
+    </mvc:interceptors>
+
 </beans>

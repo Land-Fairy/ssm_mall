@@ -36,30 +36,12 @@ public class CategoryManagerController {
     /**
      * 获取同级的品类
      * @param categoryId
-     * @param request
      * @return
      */
     @RequestMapping(value = "get_category.do", method = RequestMethod.GET)
     @ResponseBody
     public ServerResponse getCategory(
-            @RequestParam(value = "categoryId", defaultValue = "0", required = false) Integer categoryId,
-            HttpServletRequest request) {
-
-        String loginToken = CookieUtil.readLoginToken(request);
-        if (StringUtils.isEmpty(loginToken)) {
-            return ServerResponse.createByErrorMessage("用户未登录，无法获取当前用户的信息");
-        }
-
-        String s = RedisSharedPoolUtil.get(loginToken);
-        User user = JsonUtil.string2Obj(s, User.class);
-        if(user == null){
-            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(),"用户未登录,请登录");
-        }
-        //校验一下是否是管理员
-        if(!iUserService.checkAdminRole(user).isSuccess()){
-            return ServerResponse.createByErrorMessage("无权限操作,需要管理员权限");
-        }
-
+            @RequestParam(value = "categoryId", defaultValue = "0", required = false) Integer categoryId) {
         return iCategoryService.getCategoryByParentId(categoryId);
     }
 
@@ -75,21 +57,6 @@ public class CategoryManagerController {
     public ServerResponse<String> addCategory(
             @RequestParam(value = "parentId", defaultValue = "0", required = false) Integer parentId,
             String categoryName, HttpServletRequest request) {
-        String loginToken = CookieUtil.readLoginToken(request);
-        if (StringUtils.isEmpty(loginToken)) {
-            return ServerResponse.createByErrorMessage("用户未登录，无法获取当前用户的信息");
-        }
-
-        String s = RedisSharedPoolUtil.get(loginToken);
-        User user = JsonUtil.string2Obj(s, User.class);
-        if(user == null){
-            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(),"用户未登录,请登录");
-        }
-        //校验一下是否是管理员
-        if(!iUserService.checkAdminRole(user).isSuccess()){
-            return ServerResponse.createByErrorMessage("无权限操作,需要管理员权限");
-        }
-
         return iCategoryService.addCategory(parentId, categoryName);
     }
 
@@ -97,54 +64,22 @@ public class CategoryManagerController {
      * 更新分类名称
      * @param categoryId
      * @param categoryName
-     * @param request
      * @return
      */
     @RequestMapping(value = "set_category_name.do", method = RequestMethod.POST)
     @ResponseBody
-    public ServerResponse<String> setCategoryName(Integer categoryId, String categoryName, HttpServletRequest request) {
-        String loginToken = CookieUtil.readLoginToken(request);
-        if (StringUtils.isEmpty(loginToken)) {
-            return ServerResponse.createByErrorMessage("用户未登录，无法获取当前用户的信息");
-        }
-
-        String s = RedisSharedPoolUtil.get(loginToken);
-        User user = JsonUtil.string2Obj(s, User.class);
-        if(user == null){
-            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(),"用户未登录,请登录");
-        }
-        //校验一下是否是管理员
-        if(!iUserService.checkAdminRole(user).isSuccess()){
-            return ServerResponse.createByErrorMessage("无权限操作,需要管理员权限");
-        }
+    public ServerResponse<String> setCategoryName(Integer categoryId, String categoryName) {
         return iCategoryService.setCategoryName(categoryId, categoryName);
-
     }
 
     /**
      * 递归获取所有子分类id
      * @param categoryId
-     * @param request
      * @return
      */
     @RequestMapping(value = "get_deep_category.do", method = RequestMethod.GET)
     @ResponseBody
-    public ServerResponse getDeepCategory(Integer categoryId, HttpServletRequest request) {
-        String loginToken = CookieUtil.readLoginToken(request);
-        if (StringUtils.isEmpty(loginToken)) {
-            return ServerResponse.createByErrorMessage("用户未登录，无法获取当前用户的信息");
-        }
-
-        String s = RedisSharedPoolUtil.get(loginToken);
-        User user = JsonUtil.string2Obj(s, User.class);
-        if(user == null){
-            return ServerResponse.createByErrorCodeMessage(ResponseCode.NEED_LOGIN.getCode(),"用户未登录,请登录");
-        }
-        //校验一下是否是管理员
-        if(!iUserService.checkAdminRole(user).isSuccess()){
-            return ServerResponse.createByErrorMessage("无权限操作,需要管理员权限");
-        }
-
+    public ServerResponse getDeepCategory(Integer categoryId) {
         return iCategoryService.getDeepCategory(categoryId);
     }
 
