@@ -1905,7 +1905,22 @@ Sharded Jedis API
 
 ### 11. SpringMVC全局异常
 
-没有SpringMVC异常的时候，流程是什么样子的呢?
+程序存在问题：
+
+​	正常情况下，返回数据还是正常的。如果在程序处理中，出现了 runtimeException（比如除0),  前端显示的界面如下:
+
+![image-20200204101920826](../笔记/image-20200204101920826.png)
+
+>问题:
+>
+>	1. 程序出错 也应当返回 json 格式，并且返回数据格式也是 code, msg, data 形式
+> 	2. 该出错界面 包含了太多程序信息(类，行号，可能还会有sql语句等等)
+
+那么，如何解决这个问题呢?
+
+#### SpringMVC全局异常
+
+没有SpringMVC异常的时候，请求执行流程是什么样子的呢?
 
 ![image-20200204100710449](../笔记/image-20200204100710449.png)
 
@@ -1913,3 +1928,30 @@ Sharded Jedis API
 
 ![image-20200204100803377](../笔记/image-20200204100803377.png)
 
+> 即，DispatcherServlet 通过 ExceptionResolver 对异常进行包装，然后 将包装过的异常返回给前端
+
+#### 如何使用?
+
+1. 自定义一个类，实现  HandlerExceptionResolver 接口
+2. 使用 @Component 将 其加入到 容器中
+
+```java
+@Slf4j
+@Component
+public class ExceptionResolver implements HandlerExceptionResolver {
+    @Override
+    public ModelAndView resolveException(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        log.error("{} Exception", request.getRequestURI(), ex);
+
+        ModelAndView modelAndView = new ModelAndView(new MappingJacksonJsonView());
+        modelAndView.addObject("status", ResponseCode.ERROR.getCode());
+        modelAndView.addObject("msg", "接口异常");
+        modelAndView.addObject("data", ex.toString());
+        return modelAndView;
+    }
+}
+```
+
+效果: 
+
+![image-20200204102820902](../笔记/image-20200204102820902.png)
