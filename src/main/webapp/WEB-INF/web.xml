@@ -66,9 +66,12 @@
         -->
         <load-on-startup>1</load-on-startup>
     </servlet>
+
+    <!-- 使用 / 的原因是，对应 restful 类型接口，是不带 .do 的
+     为了兼容 restful 与 非 restful-->
     <servlet-mapping>
         <servlet-name>dispatcher</servlet-name>
-        <url-pattern>*.do</url-pattern>
+        <url-pattern>/</url-pattern>
     </servlet-mapping>
 
 </web-app>

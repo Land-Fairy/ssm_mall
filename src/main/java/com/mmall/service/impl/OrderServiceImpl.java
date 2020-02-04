@@ -27,8 +27,10 @@ import com.mmall.vo.OrderItemVo;
 import com.mmall.vo.OrderProductVo;
 import com.mmall.vo.OrderVo;
 import com.mmall.vo.ShippingVo;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -457,6 +459,34 @@ public class OrderServiceImpl implements IOrderService {
             }
         }
         return ServerResponse.createByErrorMessage("订单不存在");
+    }
+
+    @Override
+    public void closeOrder(int hour) {
+        Date closeDateTime = DateUtils.addHours(new Date(), -hour);
+
+        List<Order> orderList = orderMapper.selectOrderStatusByCreateTIme(Const.OrderStatusEnum.NO_PAY.getCode(), DateTimeUtil.dateToStr(closeDateTime));
+
+        for (Order order : orderList) {
+            List<OrderItem> orderItemList = orderItemMapper.getByOrderNo(order.getOrderNo());
+
+            for (OrderItem orderItem : orderItemList) {
+
+                /* TODO: 查询的时候，使用 where 主键 + for update 的原因 ??*/
+                Integer stock = productMapper.selectStockByProductId(orderItem.getProductId());
+
+                /* 订单中商品被删除，直接跳过 */
+                if (stock == null) {
+                    continue;
+                }
+
+                Product product = new Product();
+                product.setId(orderItem.getProductId());
+                product.setStock(stock + orderItem.getQuantity());
+                productMapper.updateByPrimaryKeySelective(product);
+            }
+            orderMapper.closeOrderByOrderId(order.getId());
+        }
     }
 
     private List<OrderVo> assembleOrderVoList(List<Order> orderList, Integer userId) {

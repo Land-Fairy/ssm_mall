@@ -197,4 +197,12 @@
       </if>
     </where>
   </select>
+
+  <!-- TODO: for update -->
+  <select id="selectStockByProductId" resultType="int" parameterType="integer">
+    select stock
+    from mmall_product
+    where id = #{id}
+    for update
+  </select>
 </mapper>
