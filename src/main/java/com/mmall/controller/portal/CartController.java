@@ -16,18 +16,18 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
-@Controller
+@RestController
 @RequestMapping("/cart/")
 public class CartController {
     @Autowired
     private ICartService iCartService;
 
     @RequestMapping(value = "list.do", method = RequestMethod.GET)
-    @ResponseBody
     public ServerResponse<CartVo> list(HttpServletRequest request){
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -45,7 +45,6 @@ public class CartController {
     }
 
     @RequestMapping("add.do")
-    @ResponseBody
     public ServerResponse<CartVo> add(HttpServletRequest request, Integer count, Integer productId){
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -60,10 +59,7 @@ public class CartController {
         return iCartService.add(user.getId(),productId,count);
     }
 
-
-
     @RequestMapping("update.do")
-    @ResponseBody
     public ServerResponse<CartVo> update(HttpServletRequest request, Integer count, Integer productId){
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -79,7 +75,6 @@ public class CartController {
     }
 
     @RequestMapping("delete_product.do")
-    @ResponseBody
     public ServerResponse<CartVo> deleteProduct(HttpServletRequest request,String productIds){
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -94,9 +89,7 @@ public class CartController {
         return iCartService.deleteProduct(user.getId(),productIds);
     }
 
-
     @RequestMapping("select_all.do")
-    @ResponseBody
     public ServerResponse<CartVo> selectAll(HttpServletRequest request){
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -112,7 +105,6 @@ public class CartController {
     }
 
     @RequestMapping("un_select_all.do")
-    @ResponseBody
     public ServerResponse<CartVo> unSelectAll(HttpServletRequest request){
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -127,10 +119,7 @@ public class CartController {
         return iCartService.selectOrUnSelect(user.getId(),null,Const.Cart.UN_CHECKED);
     }
 
-
-
     @RequestMapping("select.do")
-    @ResponseBody
     public ServerResponse<CartVo> select(HttpServletRequest request,Integer productId){
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -146,7 +135,6 @@ public class CartController {
     }
 
     @RequestMapping("un_select.do")
-    @ResponseBody
     public ServerResponse<CartVo> unSelect(HttpServletRequest request,Integer productId){
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -161,10 +149,7 @@ public class CartController {
         return iCartService.selectOrUnSelect(user.getId(),productId,Const.Cart.UN_CHECKED);
     }
 
-
-
     @RequestMapping("get_cart_product_count.do")
-    @ResponseBody
     public ServerResponse<Integer> getCartProductCount(HttpServletRequest request){
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -178,5 +163,4 @@ public class CartController {
         }
         return iCartService.getCartProductCount(user.getId());
     }
-
 }

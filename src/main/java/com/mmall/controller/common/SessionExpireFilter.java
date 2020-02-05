@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 
 /**
- * 作用: 相关的所有请求，如果带有用户信息的，就需要更新 Redis中 token 的过期时间
+ * TODO: 作用: 相关的所有请求，如果带有用户信息的，就需要更新 Redis中 token 的过期时间
  */
 public class SessionExpireFilter implements Filter {
     @Override

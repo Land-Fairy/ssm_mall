@@ -8,22 +8,32 @@ import org.joda.time.format.DateTimeFormatter;
 import java.util.Date;
 
 /**
- * Created by geely
+ * TODO: 时间转换 Utils
  */
 public class DateTimeUtil {
-
-    //joda-time
-
-    //str->Date
-    //Date->str
+    /**
+     * 时间格式
+     */
     public static final String STANDARD_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
+    /**
+     * 字符串 转时间
+     * @param dateTimeStr
+     * @param formatStr
+     * @return
+     */
     public static Date strToDate(String dateTimeStr,String formatStr){
         DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern(formatStr);
         DateTime dateTime = dateTimeFormatter.parseDateTime(dateTimeStr);
         return dateTime.toDate();
     }
 
+    /**
+     * 时间 转 字符串
+     * @param date
+     * @param formatStr
+     * @return
+     */
     public static String dateToStr(Date date,String formatStr){
         if(date == null){
             return StringUtils.EMPTY;

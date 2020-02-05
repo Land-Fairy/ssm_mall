@@ -6,7 +6,7 @@ import org.codehaus.jackson.map.annotate.JsonSerialize;
 import java.io.Serializable;
 
 /**
- * 通用响应对象
+ * TODO: 通用响应对象
  * @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL) 用来忽略值为 null的字段 （json序列化后不返回)
  * @param <T>
  */

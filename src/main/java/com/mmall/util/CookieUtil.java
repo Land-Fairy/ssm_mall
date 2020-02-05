@@ -8,6 +8,9 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+/**
+ * TODO: Cookie 操作 Utils
+ */
 public class CookieUtil {
     private final static String COOKIE_DOMAIN = ".day.com";
     private final static String COOKIE_NAME = "mmall_login_token";

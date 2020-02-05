@@ -136,6 +136,7 @@
     and product_id = #{productId}
   </select>
 
+  <!-- TODO: list 使用 -->
   <delete id="deleteByUserIdProductIds" parameterType="map">
     delete from mmall_cart
     where user_id = #{userId}
@@ -161,8 +162,7 @@
     select IFNULL(sum(quantity),0) as count from mmall_cart where user_id = #{userId}
   </select>
 
-
-
+  <!-- TODO: -->
   <select id="selectCheckedCartByUserId" parameterType="int" resultMap="BaseResultMap">
     SELECT
     <include refid="Base_Column_List"/>

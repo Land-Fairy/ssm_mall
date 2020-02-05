@@ -27,7 +27,7 @@
       <version>7.0.64</version>
     </dependency>
 
-    <!-- Spring -->
+    <!-- Spring  依赖 -->
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-webmvc</artifactId>
@@ -65,8 +65,9 @@
       <version>1.7.3</version>
     </dependency>
 
-    <!-- mybatis -->
-
+    <!-- mybatis
+     mybatis 与 spring 整合依赖
+     myatis 分页 -->
     <dependency>
       <groupId>org.mybatis</groupId>
       <artifactId>mybatis-spring</artifactId>
@@ -77,6 +78,16 @@
       <artifactId>mybatis</artifactId>
       <version>${org.mybatis.version}</version>
     </dependency>
+    <dependency>
+      <groupId>com.github.pagehelper</groupId>
+      <artifactId>pagehelper</artifactId>
+      <version>4.1.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.miemiedev</groupId>
+      <artifactId>mybatis-paginator</artifactId>
+      <version>1.2.17</version>
+    </dependency>
 
     <dependency>
       <groupId>org.aspectj</groupId>
@@ -84,6 +95,7 @@
       <version>1.6.11</version>
     </dependency>
 
+    <!-- jackson 依赖，注意使用的版本1.9， 而非 2.x -->
     <dependency>
       <groupId>org.codehaus.jackson</groupId>
       <artifactId>jackson-mapper-asl</artifactId>
@@ -98,7 +110,7 @@
       <!--<scope>runtime</scope>-->
     </dependency>
 
-
+    <!-- logback 依赖 -->
     <dependency>
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
@@ -124,13 +136,12 @@
       <version>20.0</version>
     </dependency>
 
+    <!-- 工具包 -->
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
       <version>3.5</version>
     </dependency>
-
-
     <dependency>
       <groupId>commons-collections</groupId>
       <artifactId>commons-collections</artifactId>
@@ -168,8 +179,6 @@
     </dependency>
 
     <!-- file upload -->
-
-    <!-- https://mvnrepository.com/artifact/commons-fileupload/commons-fileupload -->
     <dependency>
       <groupId>commons-fileupload</groupId>
       <artifactId>commons-fileupload</artifactId>
@@ -180,20 +189,6 @@
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
       <version>2.0.1</version>
-    </dependency>
-
-    <!-- mybatis pager -->
-
-    <dependency>
-      <groupId>com.github.pagehelper</groupId>
-      <artifactId>pagehelper</artifactId>
-      <version>4.1.0</version>
-    </dependency>
-
-    <dependency>
-      <groupId>com.github.miemiedev</groupId>
-      <artifactId>mybatis-paginator</artifactId>
-      <version>1.2.17</version>
     </dependency>
 
     <dependency>
@@ -254,44 +249,6 @@
       <version>1.2.0.RELEASE</version>
     </dependency>
 
-
-    <!-- Alipay -->
-    <dependency>
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
-      <version>1.10</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-configuration</groupId>
-      <artifactId>commons-configuration</artifactId>
-      <version>1.10</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-lang</groupId>
-      <artifactId>commons-lang</artifactId>
-      <version>2.6</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-logging</groupId>
-      <artifactId>commons-logging</artifactId>
-      <version>1.1.1</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.zxing</groupId>
-      <artifactId>core</artifactId>
-      <version>2.1</version>
-    </dependency>
-    <dependency>
-      <groupId>com.google.code.gson</groupId>
-      <artifactId>gson</artifactId>
-      <version>2.3.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.hamcrest</groupId>
-      <artifactId>hamcrest-core</artifactId>
-      <version>1.3</version>
-    </dependency>
-
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
@@ -299,12 +256,12 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- redisson 依赖，用来做 分布式锁 -->
     <dependency>
       <groupId>org.redisson</groupId>
       <artifactId>redisson</artifactId>
       <version>2.9.0</version>
     </dependency>
-
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-avro</artifactId>
@@ -317,8 +274,7 @@
   <build>
     <finalName>mmall</finalName>
     <plugins>
-
-      <!-- 配置 mybatis generator 依赖 -->
+      <!-- TODO: 配置 mybatis generator 依赖 (使用插件的方式，根据数据库，生成 dao，pojo，mapper) -->
       <plugin>
         <groupId>org.mybatis.generator</groupId>
         <artifactId>mybatis-generator-maven-plugin</artifactId>
@@ -337,7 +293,7 @@
           <source>1.8</source>
           <target>1.8</target>
           <encoding>UTF-8</encoding>
-          <!-- 防止发布版本问题 -->
+          <!-- TODO: 防止发布版本问题(额外的jar包) -->
           <compilerArguments>
             <extdirs>${project.basedir}/src/main/webapp/WEB-INF/lib</extdirs>
           </compilerArguments>
@@ -345,6 +301,7 @@
       </plugin>
     </plugins>
 
+    <!-- TODO: 使用 maven 配置隔离的功能 resources + profiles -->
     <resources>
       <resource>
         <directory>src/main/resources.${deploy.type}</directory>
@@ -357,7 +314,6 @@
         <directory>src/main/resources</directory>
       </resource>
     </resources>
-
   </build>
 
   <profiles>
@@ -383,6 +339,4 @@
       </properties>
     </profile>
   </profiles>
-
-
 </project>

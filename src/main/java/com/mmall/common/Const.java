@@ -10,7 +10,8 @@ public class Const {
 
     public static final String TOKEN_PREFIX = "token_";
 
-    /* Redis 过期时间 */
+    /* TODO: 使用 接口 作为 枚举类型 (轻量)
+     Redis 过期时间 */
     public interface RedisCacheExtime{
         /* SESSION 过期时间 30 分钟 */
         int REDIS_SESSION_EXTIME = 60 * 30;
@@ -30,7 +31,7 @@ public class Const {
         String LIMIT_NUM_SUCCESS = "LIMIT_NUM_SUCCESS";
     }
 
-    /**
+    /** TODO: 类内枚举类型
      * 订单状态
      */
     public enum OrderStatusEnum{

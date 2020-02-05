@@ -14,16 +14,13 @@ import com.mmall.util.RedisSharedPoolUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 import sun.security.util.Length;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 
-@Controller
+@RestController
 @RequestMapping("/manage/category")
 public class CategoryManagerController {
 
@@ -39,7 +36,6 @@ public class CategoryManagerController {
      * @return
      */
     @RequestMapping(value = "get_category.do", method = RequestMethod.GET)
-    @ResponseBody
     public ServerResponse getCategory(
             @RequestParam(value = "categoryId", defaultValue = "0", required = false) Integer categoryId) {
         return iCategoryService.getCategoryByParentId(categoryId);
@@ -53,7 +49,6 @@ public class CategoryManagerController {
      * @return
      */
     @RequestMapping(value = "add_category.do", method = RequestMethod.POST)
-    @ResponseBody
     public ServerResponse<String> addCategory(
             @RequestParam(value = "parentId", defaultValue = "0", required = false) Integer parentId,
             String categoryName, HttpServletRequest request) {
@@ -67,7 +62,6 @@ public class CategoryManagerController {
      * @return
      */
     @RequestMapping(value = "set_category_name.do", method = RequestMethod.POST)
-    @ResponseBody
     public ServerResponse<String> setCategoryName(Integer categoryId, String categoryName) {
         return iCategoryService.setCategoryName(categoryId, categoryName);
     }
@@ -78,7 +72,6 @@ public class CategoryManagerController {
      * @return
      */
     @RequestMapping(value = "get_deep_category.do", method = RequestMethod.GET)
-    @ResponseBody
     public ServerResponse getDeepCategory(Integer categoryId) {
         return iCategoryService.getDeepCategory(categoryId);
     }

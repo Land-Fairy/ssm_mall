@@ -2,12 +2,21 @@ package com.mmall.util;
 
 import java.math.BigDecimal;
 
+/**
+ * TODO: BigDecimal 计算的工具类
+ */
 public class BigDecimalUtil {
 
     private BigDecimalUtil(){
 
     }
 
+    /**
+     * BigDecimal 在进行金融计算的时候，double 要转为 string，才能精确计算
+     * @param v1
+     * @param v2
+     * @return
+     */
     public static BigDecimal add(double v1,double v2){
         BigDecimal b1 = new BigDecimal(Double.toString(v1));
         BigDecimal b2 = new BigDecimal(Double.toString(v2));

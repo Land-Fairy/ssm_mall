@@ -20,6 +20,9 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map;
 
+/**
+ * TODO: 权限监测 拦截器
+ */
 @Slf4j
 public class AuthorityInterceptor implements HandlerInterceptor {
     @Override

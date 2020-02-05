@@ -3,9 +3,7 @@ package com.mmall.util;
 import com.mmall.pojo.User;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.DeserializationConfig;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
@@ -18,7 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * 由于存储到 Redis时，使用的是 String
+ * TODO: 由于存储到 Redis时，使用的是 String
  * 因此，就需要 JsonUtil 来做 obj => string 或者 string => obj
  */
 @Slf4j
@@ -41,6 +39,12 @@ public class JsonUtil {
 
     }
 
+    /**
+     * 对象 转 str
+     * @param obj
+     * @param <T>
+     * @return
+     */
     public static <T> String obj2String(T obj) {
         if (obj == null) {
             return null;
@@ -54,6 +58,12 @@ public class JsonUtil {
         }
     }
 
+    /**
+     * 对象 转 str (方便阅读格式)
+     * @param obj
+     * @param <T>
+     * @return
+     */
     public static <T> String obj2StringPretty(T obj) {
         if (obj == null) {
             return null;

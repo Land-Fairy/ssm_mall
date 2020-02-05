@@ -8,12 +8,21 @@
 	http://www.springframework.org/schema/mvc
 	http://www.springframework.org/schema/mvc/spring-mvc.xsd">
 
-    <!-- SpringMVC 中，只需要扫描 Controller -->
+    <!-- TODO: SpringMVC 中，只需要扫描 Controller -->
     <context:component-scan base-package="com.mmall.controller" annotation-config="true">
         <context:include-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
     </context:component-scan>
 
+    <!--  TODO: 是告知Spring容器，我们启用注解驱动，支持@RequestMapping注解,这样我们就可以使用@RequestMapping来配置处理器 -->
     <mvc:annotation-driven>
+        <!-- TODO: message-converters 的作用
+            request, response 都是 一组字符串，那么在java 操作时，肯定希望 request 时 string => java 对象；
+            response 时，对象 => string
+            ==》 需要进行 消息转换，怎么知道需要消息转换呢 ?
+                ==> @RequestBody @ResponseBody 会调用 消息转换
+                    ==> 可以自己注册 针对类型 的 消息转换方式（比如 application/json类型，可以用 很多json 方式
+                        进行转换，而我偏偏想要使用 jackson 进行转换，就需要自己配置 !!!!
+        -->
         <mvc:message-converters>
             <bean class="org.springframework.http.converter.StringHttpMessageConverter">
                 <property name="supportedMediaTypes">
@@ -33,20 +42,20 @@
         </mvc:message-converters>
     </mvc:annotation-driven>
 
-
-
-    <!-- 文件上传 -->
+    <!-- TODO: 文件上传 -->
     <bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
         <property name="maxUploadSize" value="10485760"/> <!-- 10m -->
         <property name="maxInMemorySize" value="4096" />
         <property name="defaultEncoding" value="UTF-8"></property>
     </bean>
 
-
+    <!-- TODO: 配置拦截器 -->
     <mvc:interceptors>
         <mvc:interceptor>
-            <!-- /manage/a.do  => /manage/*-->
-            <!-- /manage/product/a.do => /manage/** -->
+            <!-- TODO: 路径匹配规则
+            /manage/*    => 只会匹配manage的子路径    /manage/a
+            /manage/**   => 会匹配 manage的子孙路径   /manage/a /manage/a/b
+            -->
             <mvc:mapping path="/manage/**"/>
             <bean class="com.mmall.controller.common.interceptor.AuthorityInterceptor"></bean>
         </mvc:interceptor>

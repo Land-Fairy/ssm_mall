@@ -13,10 +13,13 @@
     <context:component-scan base-package="com.mmall" annotation-config="true">
        <context:exclude-filter type="annotation" expression="org.springframework.stereotype.Controller"/>
     </context:component-scan>
+
     <!-- aop 的配置 -->
     <aop:aspectj-autoproxy/>
 
+    <!-- 开启定时器开关，自动扫描程序中带注解的定时器 -->
     <task:annotation-driven></task:annotation-driven>
+
     <!-- 加载另外的配置文件 (将配置放在多个 xml 配置文件中 )-->
     <import resource="applicationContext-datasource.xml"/>
 

@@ -18,17 +18,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.util.Iterator;
 import java.util.Map;
 
-@Controller
+@RestController
 @RequestMapping("/order/")
 public class OrderController {
     private static Logger logger = LoggerFactory.getLogger(OrderController.class);
@@ -44,7 +41,6 @@ public class OrderController {
      * @return
      */
     @RequestMapping(value = "pay.do", method = RequestMethod.POST)
-    @ResponseBody
     public ServerResponse pay(HttpServletRequest servletRequest, Long orderNo, HttpServletRequest request) {
         String loginToken = CookieUtil.readLoginToken(servletRequest);
         if (StringUtils.isEmpty(loginToken)) {
@@ -67,7 +63,6 @@ public class OrderController {
      * @return
      */
     @RequestMapping(value = "query_order_pay_status.do", method = RequestMethod.GET)
-    @ResponseBody
     public ServerResponse<Boolean> queryOrderPayStatus(HttpServletRequest request, Long orderNo) {
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -95,7 +90,6 @@ public class OrderController {
      * @return
      */
     @RequestMapping(value = "alipay_callback.do")
-    @ResponseBody
     public Object alipayCallback(HttpServletRequest request) {
         Map<String, String> params = Maps.newHashMap();
 
@@ -141,7 +135,6 @@ public class OrderController {
      * @return
      */
     @RequestMapping(value = "create.do", method = RequestMethod.POST)
-    @ResponseBody
     public ServerResponse create(HttpServletRequest request, Integer shippingId) {
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -164,7 +157,6 @@ public class OrderController {
      * @return
      */
     @RequestMapping(value = "cancel.do", method = RequestMethod.POST)
-    @ResponseBody
     public ServerResponse cancel(HttpServletRequest request, Long orderNo) {
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -186,7 +178,6 @@ public class OrderController {
      * @return
      */
     @RequestMapping(value = "get_order_cart_product.do", method = RequestMethod.GET)
-    @ResponseBody
     public ServerResponse getOrderCartProduct(HttpServletRequest request) {
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -209,7 +200,6 @@ public class OrderController {
      * @return
      */
     @RequestMapping(value = "detail.do", method = RequestMethod.GET)
-    @ResponseBody
     public ServerResponse detail(HttpServletRequest request, Long orderNo) {
         String loginToken = CookieUtil.readLoginToken(request);
         if (StringUtils.isEmpty(loginToken)) {
@@ -233,7 +223,6 @@ public class OrderController {
      * @return
      */
     @RequestMapping(value = "list.do", method = RequestMethod.GET)
-    @ResponseBody
     public ServerResponse list(HttpServletRequest request,
                                @RequestParam(value = "pageNum", defaultValue = "1") int pageNum,
                                @RequestParam(value = "pageSize", defaultValue = "20") int pageSize) {

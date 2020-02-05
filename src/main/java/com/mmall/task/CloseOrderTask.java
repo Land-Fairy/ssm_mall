@@ -14,6 +14,9 @@ import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * TODO: 定时关闭订单
+ */
 @Component
 @Slf4j
 public class CloseOrderTask {
@@ -24,9 +27,11 @@ public class CloseOrderTask {
     @Autowired
     private RedissonManager redissonManager;
 
-//    /**
-//     * 每 隔 一分钟
-//     */
+    /* 版本一:
+     * 方式一:
+        缺点:  在多 tomcat时，多个 tomcat 都会 去读取数据库，进行 执行任务 ==> 同一个任务，被执行多次
+     * 每 隔 一分钟
+     */
 //    @Scheduled(cron = "0 */1 * * * ? ")
 //    public void closeOrderTaskV1() {
 //        int hour = Integer.parseInt(PropertiesUtil.getProperty("close.order.task.time.hour", "2"));
@@ -34,6 +39,7 @@ public class CloseOrderTask {
 //    }
 
     /**
+     * 版本二: 使用 Redis分布锁
      * 每 隔 一分钟
      * 使用 Redis 分布式锁 版本
      */
@@ -70,6 +76,7 @@ public class CloseOrderTask {
     }
 
     /**
+     * 版本三: Redis 分布锁版本，添加防止 死锁功能
      * 每 隔 一分钟
      * 使用 Redis 分布式锁 版本
      */
@@ -117,6 +124,9 @@ public class CloseOrderTask {
     }
 
 
+    /**
+     * 版本四: Redisson 实现分布式锁版本
+     */
     @Scheduled(cron = "0 */1 * * * ? ")
     public void closeOrderTaskV4() {
         RLock lock = redissonManager.getRedisson().getLock(Const.RedisLock.CLOSE_ORDER_LOCK);

@@ -1,5 +1,6 @@
 package com.mmall.util;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,12 +10,10 @@ import java.io.InputStreamReader;
 import java.util.Properties;
 
 /**
- * Created by geely
+ * TODO: Propertites 工具类，用来读取 配置文件
  */
+@Slf4j
 public class PropertiesUtil {
-
-    private static Logger logger = LoggerFactory.getLogger(PropertiesUtil.class);
-
     private static Properties props;
 
     static {
@@ -23,10 +22,15 @@ public class PropertiesUtil {
         try {
             props.load(new InputStreamReader(PropertiesUtil.class.getClassLoader().getResourceAsStream(fileName),"UTF-8"));
         } catch (IOException e) {
-            logger.error("配置文件读取异常",e);
+            log.error("配置文件读取异常",e);
         }
     }
 
+    /**
+     * 获取 属性值
+     * @param key
+     * @return
+     */
     public static String getProperty(String key){
         String value = props.getProperty(key.trim());
         if(StringUtils.isBlank(value)){
@@ -35,6 +39,12 @@ public class PropertiesUtil {
         return value.trim();
     }
 
+    /**
+     * 获取属性值，带有默认值
+     * @param key
+     * @param defaultValue
+     * @return
+     */
     public static String getProperty(String key,String defaultValue){
 
         String value = props.getProperty(key.trim());

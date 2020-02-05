@@ -5,6 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.slf4j.LoggerFactory;
 import redis.clients.jedis.Jedis;
 
+/**
+ * TODO: RedisPool 工具类 (单 Redis 方式)
+ */
 @Slf4j
 public class RedisPoolUtil {
 

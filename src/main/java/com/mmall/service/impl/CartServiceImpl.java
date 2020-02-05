@@ -30,7 +30,6 @@ public class CartServiceImpl implements ICartService {
     @Autowired
     private ProductMapper productMapper;
 
-
     @Override
     public ServerResponse<CartVo> list(Integer userId) {
         CartVo cartVo = this.getCartVoLimit(userId);

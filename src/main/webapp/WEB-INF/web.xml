@@ -6,7 +6,7 @@
 
     <display-name>Archetype Created Web Application</display-name>
 
-    <!-- 将所有请求都转为 UTF_8 -->
+    <!-- TODO: 将所有请求都转为 UTF_8 -->
     <filter>
         <filter-name>characterEncodingFilter</filter-name>
         <filter-class>org.springframework.web.filter.CharacterEncodingFilter</filter-class>
@@ -23,7 +23,8 @@
         <filter-name>characterEncodingFilter</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
-    
+
+    <!-- TODO: 过滤器 对带有用户的请求，更新 Redis 中 session 过期时间 -->
     <filter>
         <filter-name>sessionExpireFilter</filter-name>
         <filter-class>com.mmall.controller.common.SessionExpireFilter</filter-class>
@@ -39,12 +40,12 @@
         <listener-class>org.springframework.web.context.request.RequestContextListener</listener-class>
     </listener>
 
-    <!-- 将 Web 容器 与 Spring 容器进行整合的 监听器 -->
+    <!-- TODO: 监听 Web容器启动，创建 Spring 容器（与 Spring 整合)  -->
     <listener>
         <listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
     </listener>
 
-    <!-- 指定 Spring 的配置文件 -->
+    <!-- TODO: 指定 Spring 的配置文件(Spring 容器创建时，查找对应的配置文件) -->
     <context-param>
         <param-name>contextConfigLocation</param-name>
         <param-value>
@@ -52,11 +53,13 @@
         </param-value>
     </context-param>
 
-    <!-- *.do 的请求，都会被 SpringMVC 进行拦截 -->
+    <!-- TODO: 配置  DispatcherServlet，指定需要被 SpringMVC 进行拦截处理的请求
+       以及 SpringMVC 对应的 配置文件 (dispatcher-servlet.xml)
+    -->
     <servlet>
         <servlet-name>dispatcher</servlet-name>
         <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
-        <!-- 默认的 servlet 对应的 xml 文件名称为 servlet名称-servlet.xml
+        <!-- TODO: 默认的 servlet 对应的 xml 文件名称为 servlet名称-servlet.xml
             在此处即 dispatcher-servlet.xml (在 WEB-INFO 下)
             如果需要更改名称，可以使用
             <init-param>
@@ -66,7 +69,6 @@
         -->
         <load-on-startup>1</load-on-startup>
     </servlet>
-
     <!-- 使用 / 的原因是，对应 restful 类型接口，是不带 .do 的
      为了兼容 restful 与 非 restful-->
     <servlet-mapping>
