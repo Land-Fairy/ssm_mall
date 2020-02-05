@@ -1249,7 +1249,7 @@ Using CATALINA_HOME:   /Users/ios/03_software/apache-tomcat-8.5.50-2
 Using CATALINA_TMPDIR: /Users/ios/03_software/apache-tomcat-8.5.50-2/temp
 ```
 
-### 5. Nginx 负载均衡配置
+## 5. Nginx 负载均衡配置
 
 #### 1. 轮询(默认)
 
@@ -1315,7 +1315,7 @@ Using CATALINA_TMPDIR: /Users/ios/03_software/apache-tomcat-8.5.50-2/temp
 
   ![image-20200202171420549](../笔记/image-20200202171420549.png)
 
-### 6. 搭建集群
+## 6. 搭建集群
 
 - 效果
 
@@ -1801,11 +1801,11 @@ public class JsonUtil {
 
 #### 6. 忘记密码等 token 存储在 GuavaCache 迁移到 Redis
 
-### 7. Redis分布式算法
+## 7. Redis分布式算法
 
 在使用 Redis 分布式的时候，应该按照什么策略 存储 + 读取 数据呢?
 
-#### 传统的算法
+### 传统的算法
 
 ```
 假定有 4个 Redis 节点，现在有 20个 图片需要处理
@@ -1825,7 +1825,7 @@ public class JsonUtil {
 
 那么，有什么算法 可以再 增减Redis 配置的时候，也很合适呢?
 
-#### Consistent hashing 算法
+### Consistent hashing 算法
 
 即 一致性 hash 算法
 
@@ -1856,7 +1856,7 @@ public class JsonUtil {
 
 这种 算法 有什么 缺点吗 ？
 
-##### Hash 倾斜性问题
+#### Hash 倾斜性问题
 
 嗯嗯~ ，如果 Redis 节点 计算出的 hahs 结果是下面这种情况，那么 有的 Redis 节点 很繁忙，而有的则无事可做
 
@@ -1868,7 +1868,7 @@ public class JsonUtil {
 
 这种问题如何解决呢？
 
-##### 虚拟节点方式
+#### 虚拟节点方式
 
 ```
 使用 虚拟节点的方式
@@ -1881,19 +1881,226 @@ public class JsonUtil {
 
 ![image-20200203223204777](../笔记/image-20200203223204777.png)
 
-### 8. Redis 分布式搭建
+## 8. Redis 分布式搭建
 
 修改 Redis 配置文件，改为两个端口，然后启动两个Redis 即可
 
-### 9. 代码使用 Redis 分布式
+## 9. Sharded Jedis(Redis分布式)
 
 现在有了 多个 Redis 节点，如何在 代码中使用呢
 
-===========
+### 1. 创建 Sharded 连接池
 
-Sharded Jedis API
+```java
+public class RedisSharedPool {
+    /* jedis 连接池 */
+    private static ShardedJedisPool pool;
 
-### 10. Spring Session 简介
+    /* 最大连接数 */
+    private static Integer maxTotal = Integer.parseInt(PropertiesUtil.getProperty("redis.max.total", "20"));
+
+    /* 做多空闲 jedis 实例个数 */
+    private static Integer maxIdle = Integer.parseInt(PropertiesUtil.getProperty("redis.max.idle", "10"));
+
+    /* 最小的空闲 jedis 实例个数 */
+    private static Integer minIdle = Integer.parseInt(PropertiesUtil.getProperty("redis.min.idle", "2"));
+
+    /**
+     * 在 borrow 一个 jedis实例时候，
+     * 是否要进行验证操作(true 表示 每次取出来的肯定是可用实例)
+     */
+    private static Boolean testOnBorrow = Boolean.parseBoolean(PropertiesUtil.getProperty("redis.test.borrow", "true"));
+
+    /**
+     * 在 return 一个实例的时候，进行验证
+     * 如果为 true，表示 放入的一个实例肯定是可用的
+     */
+    private static Boolean testOnReturn = Boolean.parseBoolean(PropertiesUtil.getProperty("redis.test.return", "true"));
+
+    private static String redis1Ip = PropertiesUtil.getProperty("redis1.ip");
+    private static Integer redis1Port = Integer.parseInt(PropertiesUtil.getProperty("redis1.port"));
+
+    private static String redis2Ip = PropertiesUtil.getProperty("redis2.ip");
+    private static Integer redis2Port = Integer.parseInt(PropertiesUtil.getProperty("redis2.port"));
+
+
+    private static void initPool() {
+        JedisPoolConfig config = new JedisPoolConfig();
+        config.setMaxTotal(maxTotal);
+        config.setMaxIdle(maxIdle);
+        config.setMinIdle(minIdle);
+        config.setTestOnBorrow(testOnBorrow);
+        config.setTestOnReturn(testOnReturn);
+        /**
+         * 连接耗尽的时候，有新的连接来临
+         *  true: 阻塞 直到超时 或者可用
+         *  fale：抛出异常
+         */
+        config.setBlockWhenExhausted(true);
+
+        JedisShardInfo info1 = new JedisShardInfo(redis1Ip, redis1Port, 1000 * 2);
+        JedisShardInfo info2 = new JedisShardInfo(redis2Ip, redis2Port, 1000 * 2);
+
+        List<JedisShardInfo> jedisShardInfoList = new ArrayList<JedisShardInfo>();
+        jedisShardInfoList.add(info1);
+        jedisShardInfoList.add(info2);
+
+        pool = new ShardedJedisPool(config, jedisShardInfoList, Hashing.MURMUR_HASH, Sharded.DEFAULT_KEY_TAG_PATTERN);
+    }
+
+    static {
+        initPool();
+    }
+
+    /**
+     * 获取一个 Jedis 连接
+     * @return
+     */
+    public static ShardedJedis getJedis() {
+        return pool.getResource();
+    }
+
+    public static void returnResource(ShardedJedis jedis) {
+        pool.returnResource(jedis);
+    }
+
+    public static void returnBrokenResource(ShardedJedis jedis) {
+        pool.returnBrokenResource(jedis);
+    }
+
+    public static void main(String[] args) {
+    }
+}
+
+```
+
+### 2. 创建工具类
+
+```java
+package com.mmall.util;
+
+import com.mmall.common.RedisSharedPool;
+import lombok.extern.slf4j.Slf4j;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.ShardedJedis;
+
+@Slf4j
+public class RedisSharedPoolUtil {
+    /**
+     * 设置 key 的超时时间
+     * @param key
+     * @param exTime 单位 秒
+     * @return 1 -> 成功
+     */
+    public static Long expire(String key, int exTime) {
+        ShardedJedis jedis = null;
+        Long result = null;
+
+        try {
+            jedis = RedisSharedPool.getJedis();
+            result = jedis.expire(key, exTime);
+        } catch (Exception e) {
+            log.error("expire key: {}  error", key, e);
+            RedisSharedPool.returnBrokenResource(jedis);
+            return result;
+        }
+        RedisSharedPool.returnResource(jedis);
+        return result;
+    }
+
+    /**
+     * 设置 带有 超时时间的 key
+     * @param key
+     * @param value
+     * @param exTime
+     * @return
+     */
+    public static String setEx(String key, String value, int exTime) {
+        ShardedJedis jedis = null;
+        String result = null;
+
+        try {
+            jedis = RedisSharedPool.getJedis();
+            result = jedis.setex(key, exTime, value);
+        } catch (Exception e) {
+            log.error("setex key: {} value: {} error", key, value, e);
+            RedisSharedPool.returnBrokenResource(jedis);
+            return result;
+        }
+        RedisSharedPool.returnResource(jedis);
+        return result;
+    }
+
+    /**
+     * 设置 Key value
+     * @param key
+     * @param value
+     * @return
+     */
+    public static String set(String key, String value) {
+        ShardedJedis jedis = null;
+        String result = null;
+
+        try {
+            jedis = RedisSharedPool.getJedis();
+            result = jedis.set(key,value);
+        } catch (Exception e) {
+            log.error("set key: {} value: {} error", key, value, e);
+            RedisSharedPool.returnBrokenResource(jedis);
+            return result;
+        }
+        RedisSharedPool.returnResource(jedis);
+        return result;
+    }
+
+    /**
+     * 获取key的值
+     * @param key
+     * @return
+     */
+    public static String get(String key) {
+        ShardedJedis jedis = null;
+        String result = null;
+
+        try {
+            jedis = RedisSharedPool.getJedis();
+            result = jedis.get(key);
+        } catch (Exception e) {
+            log.error("get key: {} error", key, e);
+            RedisSharedPool.returnBrokenResource(jedis);
+            return result;
+        }
+        RedisSharedPool.returnResource(jedis);
+        return result;
+    }
+
+    /**
+     * 删除 key
+     * @param key
+     * @return
+     */
+    public static Long del(String key) {
+        ShardedJedis jedis = null;
+        Long result = null;
+
+        try {
+            jedis = RedisSharedPool.getJedis();
+            result = jedis.del(key);
+        } catch (Exception e) {
+            log.error("del key: {} error", key, e);
+            RedisSharedPool.returnBrokenResource(jedis);
+            return result;
+        }
+        RedisSharedPool.returnResource(jedis);
+        return result;
+    }
+}
+
+```
+
+
+
+## 10. Spring Session 简介
 
 > Spring Session 提供了一套 创建 和 管理ServletHttpSession的方案
 
@@ -1903,9 +2110,11 @@ Sharded Jedis API
 >
 > 并以此来解决Session共享的问题
 
-### 11. SpringMVC全局异常
+## 11. SpringMVC全局异常
 
-程序存在问题：
+### 背景
+
+当前程序存在问题：
 
 ​	正常情况下，返回数据还是正常的。如果在程序处理中，出现了 runtimeException（比如除0),  前端显示的界面如下:
 
@@ -1918,7 +2127,7 @@ Sharded Jedis API
 
 那么，如何解决这个问题呢?
 
-#### SpringMVC全局异常
+### SpringMVC全局异常
 
 没有SpringMVC异常的时候，请求执行流程是什么样子的呢?
 
@@ -1956,23 +2165,391 @@ public class ExceptionResolver implements HandlerExceptionResolver {
 
 ![image-20200204102820902](../笔记/image-20200204102820902.png)
 
-### 12 SpringMVC 拦截器
+## 12 SpringMVC 拦截器
 
-流程图
+### 背景
+
+​	对于 后台管理员部分，每个 请求中 都有 权限校验的代码，且这样的代码是重复的，
+
+能否将这部分抽取出来呢?
+
+​	=> 使用拦截器，对需要进行 权限校验的接口，验证通过，才进行业务代码执行！！
+
+### 拦截器流程图
+
+拦截器是在 DispacherServlet 之后进行执行的
 
 ![image-20200204112258826](../笔记/image-20200204112258826.png)
 
-### 13. Redis 分布式锁
+#### 1. 自定义权限校验拦截器
 
-![image-20200204204338196](../笔记/image-20200204204338196.png) 
+​	需要实现 HandlerInterceptor 接口即可!!
 
-### 14. Redisson
+```java
+@Slf4j
+public class AuthorityInterceptor implements HandlerInterceptor {
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
+        HandlerMethod handlerMethod = (HandlerMethod) handler;
+
+        /* 获取方法名 和 controller 名称 */
+        String methodName = handlerMethod.getMethod().getName();
+        String className = handlerMethod.getBean().getClass().getSimpleName();
+
+        //解析参数,具体的参数key以及value是什么，我们打印日志
+        StringBuffer requestParamBuffer = new StringBuffer();
+        Map paramMap = request.getParameterMap();
+        Iterator it = paramMap.entrySet().iterator();
+        while (it.hasNext()){
+            Map.Entry entry = (Map.Entry)it.next();
+            String mapKey = (String)entry.getKey();
+
+            String mapValue = StringUtils.EMPTY;
+
+            //request这个参数的map，里面的value返回的是一个String[]
+            Object obj = entry.getValue();
+            if(obj instanceof String[]){
+                String[] strs = (String[])obj;
+                mapValue = Arrays.toString(strs);
+            }
+            requestParamBuffer.append(mapKey).append("=").append(mapValue);
+        }
+
+        if(StringUtils.equals(className,"UserManageController") && StringUtils.equals(methodName,"login")){
+            log.info("权限拦截器拦截到请求,className:{},methodName:{}",className,methodName);
+            //如果是拦截到登录请求，不打印参数，因为参数里面有密码，全部会打印到日志中，防止日志泄露
+            return true;
+        }
+
+        log.info("权限拦截器拦截到请求,className:{},methodName:{},param:{}",className,methodName,requestParamBuffer.toString());
 
 
+        /* 获取 user */
+        User user = null;
+        String loginToken = CookieUtil.readLoginToken(request);
+        if (StringUtils.isNotEmpty(loginToken)) {
+            String s = RedisSharedPoolUtil.get(loginToken);
+            user = JsonUtil.string2Obj(s, User.class);
+        }
 
-![image-20200204220653631](../笔记/image-20200204220653631.png)![image-20200204220751339](../笔记/image-20200204220751339.png)
+        if(user == null || (user.getRole().intValue() != Const.Role.ROLE_ADMIN)){
+            //返回false.即不会调用controller里的方法
+            response.reset();//geelynote 这里要添加reset，否则报异常 getWriter() has already been called for this response.
+            response.setCharacterEncoding("UTF-8");//geelynote 这里要设置编码，否则会乱码
+            response.setContentType("application/json;charset=UTF-8");//geelynote 这里要设置返回值的类型，因为全部是json接口。
 
-github wiki
+            PrintWriter out = response.getWriter();
+
+            //上传由于富文本的控件要求，要特殊处理返回值，这里面区分是否登录以及是否有权限
+            if(user == null){
+                if(StringUtils.equals(className,"ProductManageController") && StringUtils.equals(methodName,"richtextImgUpload")){
+                    Map resultMap = Maps.newHashMap();
+                    resultMap.put("success",false);
+                    resultMap.put("msg","请登录管理员");
+                    out.print(JsonUtil.obj2String(resultMap));
+                }else{
+                    out.print(JsonUtil.obj2String(ServerResponse.createByErrorMessage("拦截器拦截,用户未登录")));
+                }
+            }else{
+                if(StringUtils.equals(className,"ProductManageController") && StringUtils.equals(methodName,"richtextImgUpload")){
+                    Map resultMap = Maps.newHashMap();
+                    resultMap.put("success",false);
+                    resultMap.put("msg","无权限操作");
+                    out.print(JsonUtil.obj2String(resultMap));
+                }else{
+                    out.print(JsonUtil.obj2String(ServerResponse.createByErrorMessage("拦截器拦截,用户无权限操作")));
+                }
+            }
+            out.flush();
+            out.close();//geelynote 这里要关闭
+
+            return false;
+
+        }
+
+
+        return true;
+    }
+
+    @Override
+    public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler, ModelAndView modelAndView) throws Exception {
+
+    }
+
+    @Override
+    public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) throws Exception {
+
+    }
+}
+
+```
+
+#### 2. 注册拦截器
+
+​	定义了拦截器之后，需要注册到 SpringMVC之中，并且需要告诉他，需要对那些接口执行拦截
+
+```xml
+<mvc:interceptors>
+        <mvc:interceptor>
+            <!-- /manage/a.do  => /manage/*-->
+            <!-- /manage/product/a.do => /manage/** -->
+            <mvc:mapping path="/manage/**"/>
+            <bean class="com.mmall.controller.common.interceptor.AuthorityInterceptor"></bean>
+        </mvc:interceptor>
+    </mvc:interceptors>
+```
+
+## 13. 定时关闭订单功能
+
+### 1. 使用 Spring Schedule 实现
+
+Spring Schedule 功能怎么使用呢?
+
+- 开启Spring Schedule 模块
+
+```
+<task:annotation-driven></task:annotation-driven>
+```
+
+- 使用 Cron 表达式
+
+```java
+@Component
+@Slf4j
+public class CloseOrderTask {
+
+    @Autowired
+    private IOrderService iOrderService;
+
+    /**
+     * 每 隔 一分钟
+     */
+    @Scheduled(cron = "0 */1 * * * ? ")
+    public void closeOrderTaskV1() {
+        int hour = Integer.parseInt(PropertiesUtil.getProperty("close.order.task.time.hour", "2"));
+        iOrderService.closeOrder(hour);
+    }
+}
+```
+
+##### 缺点:
+
+```
+单个 tomcat 版本，功能是正常的
+但是，在多个 tomcagt 时，会出现如下问题
+	多个 tomcat 中程序都会执行，都会读取 数据库，进行 订单关闭
+		==> 一个订单，被多个关闭啦!!!!!
+```
+
+怎么解决呢?
+
+```
+主要是需要保证 一个订单，只被一个进行调用
+	- Redis 分布式锁 的方式
+```
+
+### 2. Redis 分布式锁
+
+主要是使用 Redis的 setnx 功能,
+
+```java
+/**
+     * 每 隔 一分钟
+     * 使用 Redis 分布式锁 版本
+     */
+    @Scheduled(cron = "0 */1 * * * ? ")
+    public void closeOrderTaskV2() {
+        /* 分布式锁 的超时时间 单位: 毫秒 */
+        long lockTimeout = Long.parseLong(PropertiesUtil.getProperty("lock.timeout", "5000"));
+
+        /**
+         * 分布式锁
+         * value 为：当前时间 + 过期时间  ==》 记录了锁的时间，可以判断锁是否过期，防止死锁
+         */
+        Long setResult = RedisSharedPoolUtil.setnx(Const.RedisLock.CLOSE_ORDER_LOCK,
+                String.valueOf(System.currentTimeMillis() + lockTimeout));
+
+        if (setResult != null && setResult.intValue() == 1) {
+            /* 获取锁成功*/
+            closeOrder(Const.RedisLock.CLOSE_ORDER_LOCK);
+        } else {
+            log.info("没有获取到分布式锁");
+        }
+        log.info("关闭订单 定时任务结束");
+    }
+
+    private void closeOrder(String lockName) {
+        RedisSharedPoolUtil.expire(lockName, 5);
+        log.info("获取{}, ThreadName: {}", Const.RedisLock.CLOSE_ORDER_LOCK, Thread.currentThread().getName());
+
+        int hour = Integer.parseInt(PropertiesUtil.getProperty("close.order.task.time.hour", "2"));
+        iOrderService.closeOrder(hour);
+        RedisSharedPoolUtil.del(Const.RedisLock.CLOSE_ORDER_LOCK);
+        log.info("释放{}, ThreadName: {}", Const.RedisLock.CLOSE_ORDER_LOCK, Thread.currentThread().getName());
+    }
+```
+
+#### 问题:
+
+```
+如果在 setnx 执行之后，程序崩溃了, 那么 这个key 就不会超时，其他程序，也再也不会获取到 key！！！ 造成了 死锁, 如果解决呢?
+	==> 在获取锁失败的时候，查看锁保存的超时时间，如果锁已经超时，代表这个锁是可以使用的
+```
+
+### 3. Redis 解决 死锁问题
+
+- 流程
+
+![image-20200204204338196](../笔记/image-20200204204338196.png)
+
+```java
+@Scheduled(cron = "0 */1 * * * ? ")
+    public void closeOrderTaskV3() {
+        /* 分布式锁 的超时时间 单位: 毫秒 */
+        long lockTimeout = Long.parseLong(PropertiesUtil.getProperty("lock.timeout", "5000"));
+
+        /**
+         * 分布式锁
+         * value 为：当前时间 + 过期时间  ==》 记录了锁的时间，可以判断锁是否过期，防止死锁
+         */
+        Long setResult = RedisSharedPoolUtil.setnx(Const.RedisLock.CLOSE_ORDER_LOCK,
+                String.valueOf(System.currentTimeMillis() + lockTimeout));
+
+        if (setResult != null && setResult.intValue() == 1) {
+            /* 获取锁成功*/
+            closeOrder(Const.RedisLock.CLOSE_ORDER_LOCK);
+        } else {
+            /**
+             * 如果 setnx 之后，程序退出，那么 key 就没有设置超时，锁就一直不会过期，造成死锁的问题
+             *  解决：在没有获取到锁的时候，判断下 锁的时间 是否已经过期
+             */
+            String lockValueStr = RedisSharedPoolUtil.get(Const.RedisLock.CLOSE_ORDER_LOCK);
+            if (lockValueStr != null && System.currentTimeMillis() > Long.parseLong(lockValueStr)) {
+                /**
+                 * 由于是 多 tomcat 方式，可能 会有 多个 进程 同时判断 锁已经超时，都走到了这里
+                 * 那么，哪个进程可以 获取成功呢？
+                 * 由于 getSet 是 原子性的，返回的 是旧值，即使多个 进程可以同时执行，也会有一个先后 (getSet 返回值 == lockValueStr 值的，
+                 * 就认为 是 获取 锁成功过的！！)
+                 */
+                String oldLockValueStr = RedisSharedPoolUtil.getSet(Const.RedisLock.CLOSE_ORDER_LOCK,
+                        String.valueOf(System.currentTimeMillis() + lockTimeout));
+
+                if (oldLockValueStr == null ||
+                        (oldLockValueStr != null &&  StringUtils.equals(oldLockValueStr, lockValueStr))) {
+                    /* 获取锁成功*/
+                    closeOrder(Const.RedisLock.CLOSE_ORDER_LOCK);
+                }
+            } else {
+                log.info("没有获取到分布式锁");
+            }
+        }
+        log.info("关闭订单 定时任务结束");
+    }
+```
+
+#### 优化:
+
+​	上面是手工实现的 Redis 分布式，那么 有没有更简单的方式呢?
+
+	- Redisson 
+
+### 4. Redisson 分布式锁
+
+##### TODO: Reidsson 使用（github wiki)
+
+- 添加依赖
+
+```xml
+<dependency>
+      <groupId>org.redisson</groupId>
+      <artifactId>redisson</artifactId>
+      <version>2.9.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-avro</artifactId>
+      <version>2.9.0</version>
+    </dependency>
+```
+
+#### 使用
+
+- 创建管理类
+
+```java
+@Component
+@Slf4j
+public class RedissonManager {
+    private Config config = new Config();
+    private Redisson redisson = null;
+
+    private static String redis1Ip = PropertiesUtil.getProperty("redis1.ip");
+    private static Integer redis1Port = Integer.parseInt(PropertiesUtil.getProperty("redis1.port"));
+
+    private static String redis2Ip = PropertiesUtil.getProperty("redis2.ip");
+    private static Integer redis2Port = Integer.parseInt(PropertiesUtil.getProperty("redis2.port"));
+
+    /**
+     * @PostConstruct: 在构造器完成之后，调用该方法
+     */
+    @PostConstruct
+    private void init() {
+        try {
+            config.useSingleServer().setAddress(new StringBuilder().append(redis1Ip).append(":").append(redis1Port).toString());
+            redisson = (Redisson) Redisson.create(config);
+        } catch (Exception e) {
+            log.error("redis init error", e);
+        }
+    }
+
+    public Redisson getRedisson() {
+        return redisson;
+    }
+}
+```
+
+- 使用
+
+```java
+@Scheduled(cron = "0 */1 * * * ? ")
+    public void closeOrderTaskV4() {
+        RLock lock = redissonManager.getRedisson().getLock(Const.RedisLock.CLOSE_ORDER_LOCK);
+        boolean getLock = false;
+        try {
+            /**TODO
+             * waitTime: 等待获取锁的时间, 一般设置为 0
+             * 原因:
+             *  本来是想要 只有一个人能获取到锁（执行代码), 假定 waitTime=5
+             *  1. 第一个 tomcat 获取到锁，执行代码
+             *  2. 第二个 tomcat 等待 获取锁（等待 waitTime 时间)
+             *  3. 第一个 tomcat 执行完毕，释放锁(不到 waitTime时间)
+             *  4. 第二个 tomcat 也获取到锁，执行代码
+             *  ====> 两个 tomcat 先后都获取到锁了 ！！！！！
+             *  第二个 tomcat 没获取到所，就应该直接失败！！！
+             * leaseTime: 释放锁等待时间
+             */
+            getLock = lock.tryLock(0, 5, TimeUnit.SECONDS);
+            if (getLock) {
+                int hour = Integer.parseInt(PropertiesUtil.getProperty("close.order.task.time.hour", "2"));
+                iOrderService.closeOrder(hour);
+            } else {
+                log.info("么有获取到分布式锁");
+            }
+
+        } catch (InterruptedException e) {
+            log.error("Redisson分布式锁获取异常", e);
+        } finally {
+            /* 如果没有获取到分布式锁，跳过*/
+            if (!getLock) {
+                return;
+            }
+            /* 释放锁 */
+            lock.unlock();
+        }
+
+    }
+```
 
 
 
